@@ -9,6 +9,9 @@ const {
 const {
   AUTO_SETUP_CHANNELS
 } = require('./setupAutoChannels')
+const {
+  AUTO_SETUP_CATEGORY_NAME
+} = require('./botcChannelNames')
 
 const SETUP_CHANNEL_PICKER_PREFIX = 'botc:setup-channels'
 const SETUP_CHANNEL_PICKER_ACTIONS = Object.freeze({
@@ -139,6 +142,22 @@ function normalizeSetupChannelSelection(selection = {}) {
   return Object.fromEntries(SETUP_CHANNEL_PICKER_KEYS.map(key => [key, selection[key] || null]))
 }
 
+function createExistingSetupChannelSelection(guild, parentId = null) {
+  return Object.fromEntries(SETUP_CHANNEL_PICKER_KEYS.map(key => [
+    key,
+    findExistingSetupChannel(guild, key, parentId)
+  ]))
+}
+
+function fillMissingSetupChannelSelection(selection = {}, guild, parentId = null) {
+  const normalized = normalizeSetupChannelSelection(selection)
+  const existing = createExistingSetupChannelSelection(guild, parentId)
+  for (const key of SETUP_CHANNEL_PICKER_KEYS) {
+    if (!normalized[key] && existing[key]) normalized[key] = existing[key]
+  }
+  return normalized
+}
+
 function getMissingSetupChannelKeys(selection = {}) {
   const normalized = normalizeSetupChannelSelection(selection)
   return SETUP_CHANNEL_PICKER_KEYS.filter(key => !normalized[key])
@@ -148,14 +167,49 @@ function formatSelectedChannel(channel) {
   return channel?.id ? `<#${channel.id}>` : 'Not selected'
 }
 
+function findExistingSetupChannel(guild, key, parentId = null) {
+  const config = SETUP_CHANNEL_PICKER_DETAILS[key]?.createConfig
+  if (!config) return null
+
+  const channels = getCachedGuildChannels(guild)
+  const setupParentId = parentId || findAutoSetupCategory(channels)?.id || null
+  return channels.find(channel =>
+    channel?.name === config.name &&
+    isTextSetupChannel(channel) &&
+    (!setupParentId || String(channel.parentId || channel.parent?.id || '') === String(setupParentId))
+  ) || null
+}
+
+function findAutoSetupCategory(channels) {
+  return channels.find(channel =>
+    channel?.type === ChannelType.GuildCategory &&
+    channel?.name === AUTO_SETUP_CATEGORY_NAME
+  ) || null
+}
+
+function isTextSetupChannel(channel) {
+  return channel?.type === ChannelType.GuildText || channel?.type === ChannelType.GuildAnnouncement
+}
+
+function getCachedGuildChannels(guild) {
+  const cache = guild?.channels?.cache
+  if (!cache) return []
+  if (Array.isArray(cache)) return cache
+  if (typeof cache.values === 'function') return [...cache.values()]
+  if (typeof cache[Symbol.iterator] === 'function') return [...cache]
+  return Object.values(cache)
+}
+
 module.exports = {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
   SETUP_CHANNEL_PICKER_PREFIX,
+  createExistingSetupChannelSelection,
   createSetupChannelActionId,
   createSetupChannelPickerPayload,
   createSetupChannelSelectId,
+  fillMissingSetupChannelSelection,
   getMissingSetupChannelKeys,
   isSetupChannelsInteraction,
   normalizeSetupChannelSelection,

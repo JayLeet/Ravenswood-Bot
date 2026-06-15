@@ -29,7 +29,9 @@ const {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
+  createExistingSetupChannelSelection,
   createSetupChannelPickerPayload,
+  fillMissingSetupChannelSelection,
   getMissingSetupChannelKeys,
   isSetupChannelsInteraction,
   normalizeSetupChannelSelection,
@@ -118,7 +120,7 @@ async function handleChannelSelect(interaction, key, stateByUser) {
 
 async function handleCreateMissing(interaction, stateByUser) {
   const state = getPickerState(interaction, stateByUser)
-  const channels = normalizeSetupChannelSelection(state.channels)
+  let channels = normalizeSetupChannelSelection(state.channels)
   const parentResult = await findNewChannelParent(interaction, channels)
   if (!parentResult.ok) {
     return updatePicker(interaction, channels, {
@@ -126,6 +128,7 @@ async function handleCreateMissing(interaction, stateByUser) {
       message: 'I could not create or find the Ravenswood Bluff category. Check Manage Channels and try again.'
     })
   }
+  channels = fillMissingSetupChannelSelection(channels, interaction.guild, parentResult.parentId)
 
   for (const key of getMissingSetupChannelKeys(channels)) {
     const created = await createMissingSetupChannel(interaction, key, parentResult.parentId)
@@ -142,7 +145,7 @@ async function handleCreateMissing(interaction, stateByUser) {
   state.updatedAt = Date.now()
   return updatePicker(interaction, state.channels, {
     title: 'Channels created',
-    message: 'The missing setup channels were created and selected.'
+    message: 'The setup channels were created or reused and selected.'
   })
 }
 
@@ -193,7 +196,10 @@ function getPickerState(interaction, stateByUser) {
   const key = getStateKey(interaction)
   const existing = stateByUser.get(key)
   if (existing) return existing
-  const created = { channels: {}, updatedAt: Date.now() }
+  const created = {
+    channels: createExistingSetupChannelSelection(interaction.guild),
+    updatedAt: Date.now()
+  }
   stateByUser.set(key, created)
   return created
 }

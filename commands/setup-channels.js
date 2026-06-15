@@ -3,6 +3,7 @@ const {
 } = require('discord.js')
 const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
 const {
+  createExistingSetupChannelSelection,
   createSetupChannelPickerPayload
 } = require('../utils/setupChannelPicker')
 
@@ -21,8 +22,8 @@ module.exports = {
   default_member_permissions: PermissionFlagsBits.Administrator.toString(),
   setupExempt: true,
 
-  execute: wrapCommand(async () => ({
+  execute: wrapCommand(async interaction => ({
     ok: true,
-    ...createSetupChannelPickerPayload()
+    ...createSetupChannelPickerPayload(createExistingSetupChannelSelection(interaction.guild))
   }))
 }

@@ -1,20 +1,19 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.0.1
+Current version: 1.0.2
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.0.1
+Version: 1.0.2
 Type: patch
 Date: 2026-06-15
 Requires /setup: no
 Changes:
-- Fixed first-time setup checks and setup buttons in new servers.
-- Missing manual setup channels are now created inside Ravenswood Bluff when no picked channel already has a category.
+- Setup-managed role creation now uses Discord's current role color payload.
 
 Latest medium update
 --------------------

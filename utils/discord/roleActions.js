@@ -31,10 +31,22 @@ function queuedGuildRoleCreate(guild, options) {
 }
 
 function createSafeRoleCreateOptions(guild, options = {}) {
-  if (Number.isFinite(options.position)) return options
+  const safeOptions = createRoleCreateColorOptions(options)
+  if (Number.isFinite(safeOptions.position)) return safeOptions
   const botPosition = guild?.members?.me?.roles?.highest?.position
-  if (!Number.isFinite(botPosition) || botPosition <= 1) return options
-  return { ...options, position: botPosition - 1 }
+  if (!Number.isFinite(botPosition) || botPosition <= 1) return safeOptions
+  return { ...safeOptions, position: botPosition - 1 }
+}
+
+function createRoleCreateColorOptions(options) {
+  if (!Object.prototype.hasOwnProperty.call(options, 'color')) return options
+
+  const { color, colors, ...rest } = options
+  if (colors) return { ...rest, colors }
+  return {
+    ...rest,
+    colors: { primaryColor: color }
+  }
 }
 
 async function runMeasuredRoleAction(action, target, fn) {
@@ -61,5 +73,6 @@ function findCachedGuildRoleByName(guild, roleName) {
 
 module.exports = {
   createSafeRoleCreateOptions,
+  createRoleCreateColorOptions,
   queuedGuildRoleCreate
 }
