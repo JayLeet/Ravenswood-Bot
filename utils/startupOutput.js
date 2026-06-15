@@ -12,6 +12,7 @@ function beginStartupOutput({
       error: message => record('error', message),
       info: message => record('info', message),
       log: message => record('info', message),
+      milestone: message => record('milestone', message),
       warn: message => record('warn', message)
     },
     record,
@@ -29,7 +30,7 @@ function beginStartupOutput({
     }
 
     entries.push({ level, message: line })
-    if (verbose) writeLog(logger, level, line)
+    if (verbose) writeLog(logger, getLiveLevel(level), line)
   }
 
   function succeed(message = 'Ready.') {
@@ -70,7 +71,7 @@ function flushTimeline(entries, logger) {
   if (!entries.length) return
   writeLog(logger, 'error', '[BOTC][Startup] Startup timeline before failure:')
   for (const entry of entries) {
-    const level = entry.level === 'info' ? 'error' : entry.level
+    const level = ['info', 'milestone'].includes(entry.level) ? 'error' : entry.level
     writeLog(logger, level, `  - ${entry.message}`)
   }
 }
@@ -100,6 +101,10 @@ function writeLog(logger, level, message) {
   const fallback = console[level] || console.log
   const fn = typeof logger?.[level] === 'function' ? logger[level] : fallback
   fn.call(logger || console, message)
+}
+
+function getLiveLevel(level) {
+  return level === 'milestone' ? 'info' : level
 }
 
 function parseBoolean(value) {

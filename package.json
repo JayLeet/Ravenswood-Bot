@@ -1,6 +1,6 @@
 {
   "name": "botc-bot",
-  "version": "0.23.0",
+  "version": "0.23.1",
   "description": "Discord bot for running Blood on the Clocktower games.",
   "main": "index.js",
   "scripts": {

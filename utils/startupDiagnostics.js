@@ -61,13 +61,20 @@ function loginWithDiagnostics(client, token, logger = console) {
   logStartupStep('Logging in to Discord...', logger)
   return client.login(token)
     .then(result => {
-      logStartupStep('Login request accepted; waiting for clientReady.', logger)
+      logStartupMilestone('Login request accepted; waiting for clientReady.', logger)
       return result
     })
     .catch(err => {
       logError(logger, '[BOTC][Startup] Discord login failed', err)
       throw err
     })
+}
+
+function logStartupMilestone(message, logger = console) {
+  const line = `[BOTC][Startup] ${message}`
+  if (typeof logger?.milestone === 'function') {
+    logger.milestone(line)
+  }
 }
 
 function startRuntimeHealthReporter({

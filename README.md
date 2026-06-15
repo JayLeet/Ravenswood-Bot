@@ -50,13 +50,16 @@ Most live-game work happens from the game panel and Storyteller dashboard after 
 
 ## Running your own copy
 
-Create a Discord application and bot in the Discord Developer Portal, then add a local `.env` file:
+Create a Discord application and bot in the Discord Developer Portal, then add a local `.env` file. The file is intentionally not committed.
 
-```env
-DISCORD_TOKEN=
-CLIENT_ID=
-GUILD_ID=
-```
+Required values:
+
+- `DISCORD_TOKEN`: the bot token from the Discord Developer Portal.
+- `CLIENT_ID`: the Discord application/client ID.
+
+Public runtime package:
+
+- `PUBLIC_RELEASE=true`: use this for the public runtime package.
 
 Install dependencies:
 
