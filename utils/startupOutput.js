@@ -25,6 +25,7 @@ function beginStartupOutput({
   function record(level, message) {
     const line = String(message)
     if (done) {
+      if (level === 'milestone') return
       writeLog(logger, level, line)
       return
     }

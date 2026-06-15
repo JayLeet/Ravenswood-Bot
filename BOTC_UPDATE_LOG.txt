@@ -1,27 +1,27 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 0.23.1
-Latest update type: patch
+Current version: 1.0.0
+Latest update type: major
 Requires /setup: no
-
 
 Latest update
 -------------
 
-Version: 0.23.1
-Type: patch
+Version: 1.0.0
+Type: major
 Date: 2026-06-15
 Requires /setup: no
 Changes:
-- Normal startup output now shows only the final ready message on successful boot instead of also printing the intermediate Discord login milestone.
+- First public release of Ravenswood Bot.
+- Includes setup channels, game management, Storyteller tools, player commands, nominations, voting, and cleanup.
 
 Latest medium update
 --------------------
 
-Same as latest update.
+None tracked yet.
 
 Latest major update
 -------------------
 
-None tracked yet.
+Same as latest update.

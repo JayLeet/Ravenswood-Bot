@@ -6,6 +6,10 @@ It handles the busy parts around a game: setup channels, player joins, role assi
 
 Community-made unofficial tool. Not affiliated with, endorsed by, sponsored by, or licensed by The Pandemonium Institute.
 
+## Invite Ravenswood Bot
+
+[Add Ravenswood Bot to your Discord server](https://discord.com/oauth2/authorize?client_id=1516063372486119565&permissions=281855508213456&scope=bot%20applications.commands)
+
 ## What it does
 
 - Creates and maintains the Discord channels used for a game.
