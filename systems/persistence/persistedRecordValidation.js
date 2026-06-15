@@ -91,7 +91,7 @@ function validatePersistedServerConfig(config, { guildId, logger = null } = {}) 
     next[field] = null
   }
 
-  coerceArrayFields(next, ['botUpdateNoticeUserIds'], { guildId, logger, recordType: 'server-config' })
+  coerceArrayFields(next, ['botUpdateNoticeUserIds', 'setupManagedCategoryIds', 'setupManagedChannelIds'], { guildId, logger, recordType: 'server-config' })
   next.botUpdateNoticeUserIds = [...new Set(next.botUpdateNoticeUserIds
     .map(id => String(id || '').trim())
     .filter(Boolean))]

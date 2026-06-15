@@ -7,6 +7,9 @@ const {
 const {
   BOT_UPDATE_CHANNEL_NAME
 } = require('./botcChannelNames')
+const {
+  createSetupDeleteButton
+} = require('./setupDelete')
 
 const SETUP_ACCESS_PREFIX = 'botc:setup-access:'
 const SETUP_ACCESS_ACTIONS = Object.freeze({
@@ -43,7 +46,8 @@ function createSetupAccessChoicePayload() {
         .setCustomId(SETUP_ACCESS_ACTIONS.cancel)
         .setEmoji('✖️')
         .setLabel('Cancel')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
+      createSetupDeleteButton()
     )]
   }
 }

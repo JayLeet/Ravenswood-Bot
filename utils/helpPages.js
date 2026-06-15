@@ -18,6 +18,7 @@ const HELP_PAGES = Object.freeze([
       '`/setup` - Server-admin only, with bot owner override. Opens setup visibility buttons for public setup or private setup with the BOTC access role.',
       '`/setup-check` - Server-admin only, with bot owner override. Checks whether setup permissions and roles look ready before running setup.',
       '`/setup-channels` - Server-admin only, with bot owner override. Opens a picker to choose existing setup channels or create missing manual channels.',
+      '`/delete` - Server-admin only, with bot owner override. Deletes BOTC Bot setup channels and categories the bot created while leaving user-created channels alone.',
       '`/bot-update-channel set/show/clear` - Server-admin only, with bot owner override. Configure where BOTC Bot update embeds are posted.',
       '`/create-game` - Creates a new game. You become the Storyteller.',
       '`/script` - Privately shows the current script and characters. Storytellers can use `name` before the game starts to change it.',

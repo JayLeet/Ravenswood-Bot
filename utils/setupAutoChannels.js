@@ -185,19 +185,19 @@ async function createAutoSetupChannels(guild, gameManager, options = {}) {
   return { ok: true, autoCreated: true, category, channels, supportChannelsReady }
 }
 
-async function ensurePostGameChannel(guild, category, gameManager = null) {
-  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_CHANNELS.postGame)
+async function ensurePostGameChannel(guild, category, gameManager = null, options = {}) {
+  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_CHANNELS.postGame, options)
 }
 
-async function ensureGameLogChannel(guild, category, gameManager = null) {
-  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_GAME_LOG_CHANNEL)
+async function ensureGameLogChannel(guild, category, gameManager = null, options = {}) {
+  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_GAME_LOG_CHANNEL, options)
 }
 
-async function ensurePlayerGrimoireChannel(guild, category, gameManager = null) {
-  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_CHANNELS.playerGrimoire)
+async function ensurePlayerGrimoireChannel(guild, category, gameManager = null, options = {}) {
+  return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_CHANNELS.playerGrimoire, options)
 }
 
-async function ensureSupportTextChannel(guild, category, gameManager, config) {
+async function ensureSupportTextChannel(guild, category, gameManager, config, options = {}) {
   let gameRoles = {}
 
   if (gameManager) {
@@ -206,14 +206,14 @@ async function ensureSupportTextChannel(guild, category, gameManager, config) {
     gameRoles = getGameRoles(guild, gameManager)
   }
 
-  return findOrCreateTextChannel(guild, category, config, gameRoles)
+  return findOrCreateTextChannel(guild, category, config, gameRoles, options)
 }
 
-async function ensureSetupVoiceChannels(guild, category, gameManager) {
+async function ensureSetupVoiceChannels(guild, category, gameManager, options = {}) {
   const rolesReady = await ensureSetupRoles(guild, gameManager)
   if (!rolesReady.ok) return rolesReady
 
-  return ensureSetupSharedVoiceChannels(guild, category, getGameRoles(guild, gameManager))
+  return ensureSetupSharedVoiceChannels(guild, category, getGameRoles(guild, gameManager), options)
 }
 
 async function ensureSetupRoles(guild, gameManager) {
@@ -236,7 +236,7 @@ function getCachedChannels(guild) {
   return [...guild.channels.cache]
 }
 
-async function findOrCreateTextChannel(guild, category, config, gameRoles) {
+async function findOrCreateTextChannel(guild, category, config, gameRoles, options = {}) {
   const overwrites = createChannelOverwrites(guild, config, gameRoles)
   const existing = getCachedChannels(guild).find(channel =>
     channel.type === ChannelType.GuildText &&
@@ -255,6 +255,9 @@ async function findOrCreateTextChannel(guild, category, config, gameRoles) {
     parent: category?.id || null,
     reason: config.reason,
     permissionOverwrites: overwrites
+  }).then(channel => {
+    if (options.managedChannels && config.key) options.managedChannels[config.key] = channel
+    return channel
   }).catch(err => logSetupRecoverable('create-auto-setup-text-channel', err, { categoryId: category?.id, guildId: guild.id, name: config.name }))
 }
 

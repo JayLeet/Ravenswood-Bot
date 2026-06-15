@@ -12,6 +12,10 @@ const {
   getOrCreateBotUpdateChannel
 } = require('../../utils/botUpdateChannel')
 const {
+  SETUP_DELETE_CUSTOM_ID,
+  createSetupDeleteButton
+} = require('../../utils/setupDelete')
+const {
   fetchWithRecoverableFallback
 } = require('../../utils/discord/recoverableFetch')
 const {
@@ -114,6 +118,11 @@ function createFirstJoinSetupEmbed() {
         name: '/setup-channels',
         value: 'Opens a channel picker when you want to use existing channels or create only the missing manual channels.',
         inline: false
+      },
+      {
+        name: '/delete',
+        value: 'Admin-only cleanup for deleting the BOTC Bot setup channels and categories the bot created. User-created channels are left alone.',
+        inline: false
       }
     )
     .setColor(0x3498db)
@@ -133,7 +142,8 @@ function createFirstJoinSetupNoticeActionRows() {
       new ButtonBuilder()
         .setCustomId(FIRST_JOIN_SETUP_CHANNELS_ID)
         .setLabel('/setup-channels')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
+      createSetupDeleteButton()
     )
   ]
 }
@@ -192,6 +202,7 @@ function getCacheValues(cache) {
 
 module.exports = {
   DISCLAIMER,
+  SETUP_DELETE_CUSTOM_ID,
   FIRST_JOIN_SETUP_CHANNELS_ID,
   FIRST_JOIN_SETUP_CHECK_ID,
   FIRST_JOIN_SETUP_ID,

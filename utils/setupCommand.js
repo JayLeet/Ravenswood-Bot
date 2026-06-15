@@ -23,6 +23,7 @@ const {
 } = require('./setupPanelMessages')
 const { applyPrivateSetupAccess } = require('./setupPrivateAccess')
 const { applyBotChannelAccess } = require('./botChannelAccess')
+const { collectManagedSetupIds } = require('./setupDelete')
 const { notifySetupProgress } = require('./setupProgress')
 const {
   createSetupSuccessMessage
@@ -34,12 +35,7 @@ const {
 const { logSetupRecoverable } = require('./setupLogging')
 const { hasAdministratorOrGlobalCommandAccess } = require('./commandAccess')
 
-const SETUP_CHANNEL_OPTION_NAMES = Object.freeze({
-  gameChannel: 'game-channel',
-  liveChannel: 'live-channel',
-  spectatorChannel: 'spectator-channel',
-  storytellerChannel: 'storyteller-channel'
-})
+const SETUP_CHANNEL_OPTION_NAMES = Object.freeze({ gameChannel: 'game-channel', liveChannel: 'live-channel', spectatorChannel: 'spectator-channel', storytellerChannel: 'storyteller-channel' })
 
 async function runSetup(interaction, ctx, options = {}) {
   if (!hasAdministrator(interaction)) {
@@ -67,7 +63,7 @@ async function runSetup(interaction, ctx, options = {}) {
   const setupOptions = { ...options, previousConfig }
 
   const setupResult = setupOptions.manualChannels
-    ? await getManualSetupChannels(interaction, ctx.gameManager, setupOptions.manualChannelSelection)
+    ? await getManualSetupChannels(interaction, ctx.gameManager, setupOptions.manualChannelSelection, setupOptions)
     : await createAutoSetupChannels(interaction.guild, ctx.gameManager, setupOptions)
   setupResult.privateAccess = !!setupOptions.privateAccess
 
@@ -90,7 +86,9 @@ async function preflightUnsafeSetupRoles(guild, gameManager, options = {}) {
   }
 }
 
-async function getManualSetupChannels(interaction, gameManager = null, selection = null) {
+async function getManualSetupChannels(interaction, gameManager = null, selection = null, options = {}) {
+  const managedChannels = { ...(options.manualManagedChannels || {}) }
+  const managedCategories = {}
   const channels = selection || {
     gameChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.gameChannel),
     liveChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.liveChannel),
@@ -106,21 +104,24 @@ async function getManualSetupChannels(interaction, gameManager = null, selection
   }
 
   const category = getManualSetupCategory(interaction.guild, channels)
-  const postGameChannel = await ensurePostGameChannel(interaction.guild, category, gameManager)
+  const managedOptions = { managedChannels, managedCategories }
+  const postGameChannel = await ensurePostGameChannel(interaction.guild, category, gameManager, managedOptions)
   if (!postGameChannel) return { ok: false, message: 'I could not create the post-game reveal channel.' }
 
-  const gameLogChannel = await ensureGameLogChannel(interaction.guild, category, gameManager)
+  const gameLogChannel = await ensureGameLogChannel(interaction.guild, category, gameManager, managedOptions)
   if (!gameLogChannel) return { ok: false, message: 'I could not create the game-log archive channel.' }
 
-  const playerGrimoireChannel = await ensurePlayerGrimoireChannel(interaction.guild, category, gameManager)
+  const playerGrimoireChannel = await ensurePlayerGrimoireChannel(interaction.guild, category, gameManager, managedOptions)
   if (!playerGrimoireChannel) return { ok: false, message: 'I could not create the player grimoire channel.' }
 
-  const sharedVoice = await ensureSetupVoiceChannels(interaction.guild, category, gameManager)
+  const sharedVoice = await ensureSetupVoiceChannels(interaction.guild, category, gameManager, managedOptions)
   if (!sharedVoice.ok) return sharedVoice
 
   return {
     ok: true,
     channels: { ...channels, gameLogChannel, playerGrimoireChannel, postGameChannel },
+    managedCategories,
+    managedChannels,
     sharedVoiceChannels: sharedVoice.channels,
     autoCreated: false
   }
@@ -210,14 +211,19 @@ async function finishSetupSupportChannels(interaction, setupResult) {
   if (supportReady) {
     if (!supportReady.ok) return supportReady
     setupResult.cottageCategory = supportReady.cottageCategory
+    setupResult.reservedNightVoiceChannels = supportReady.reservedNightVoiceChannels
     setupResult.sharedVoiceChannels = supportReady.sharedVoiceChannels
     return { ok: true }
   }
 
   if (!setupResult.cottageCategory) {
-    const cottagePool = await ensureReservedNightAreaPool(interaction.guild)
+    const cottagePool = await ensureReservedNightAreaPool(interaction.guild, {
+      managedCategories: setupResult.managedCategories,
+      managedChannels: setupResult.managedChannels
+    })
     if (!cottagePool.ok) return cottagePool
     setupResult.cottageCategory = cottagePool.category
+    setupResult.reservedNightVoiceChannels = cottagePool.channels
   }
 
   return { ok: true }
@@ -254,6 +260,7 @@ function validateSetupChannels(interaction, channels) {
 
 function saveServerConfig(interaction, ctx, channels, panels, setupResult = {}) {
   const previousConfig = ctx.serverConfigs.get(interaction.guild.id) || {}
+  const managedSetup = collectManagedSetupIds(setupResult)
   ctx.serverConfigs.set(interaction.guild.id, {
     botUpdateNoticeUserIds: Array.isArray(previousConfig.botUpdateNoticeUserIds)
       ? previousConfig.botUpdateNoticeUserIds
@@ -270,6 +277,8 @@ function saveServerConfig(interaction, ctx, channels, panels, setupResult = {}) 
     playerGrimoirePanelMessageId: panels.playerGrimoirePanelMessage.id,
     postGameChannelId: channels.postGameChannel.id,
     privateAccess: !!setupResult.privateAccess,
+    setupManagedCategoryIds: managedSetup.setupManagedCategoryIds,
+    setupManagedChannelIds: managedSetup.setupManagedChannelIds,
     storytellerChannelId: channels.storytellerChannel.id,
     spectatorChannelId: channels.spectatorChannel.id,
     waitingRoomVoiceChannelId: setupResult.sharedVoiceChannels?.waitingRoomVoiceChannel?.id || null

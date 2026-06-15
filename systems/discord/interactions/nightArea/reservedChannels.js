@@ -41,8 +41,8 @@ const RESERVED_NIGHT_AREA_COUNT = 15
 const log = createBotLogger({ subsystem: 'ReservedNightAreas' })
 
 
-async function ensureReservedNightAreaPool(guild) {
-  const category = await findOrCreateReservedNightCategory(guild)
+async function ensureReservedNightAreaPool(guild, options = {}) {
+  const category = await findOrCreateReservedNightCategory(guild, options)
   if (!category) return { ok: false, message: 'I could not create the cottage category.' }
 
   const fetched = await fetchGuildChannelsOnce(guild)
@@ -53,7 +53,7 @@ async function ensureReservedNightAreaPool(guild) {
   const voices = []
 
   for (let slot = 1; slot <= RESERVED_NIGHT_AREA_COUNT; slot += 1) {
-    const voice = await ensureReservedVoiceChannel(guild, category, slot)
+    const voice = await ensureReservedVoiceChannel(guild, category, slot, options)
 
     if (!voice) {
       return {
@@ -66,10 +66,10 @@ async function ensureReservedNightAreaPool(guild) {
   }
 
   await orderReservedNightAreaPool(guild, voices)
-  return { ok: true, category }
+  return { ok: true, category, channels: voices }
 }
 
-async function findOrCreateReservedNightCategory(guild) {
+async function findOrCreateReservedNightCategory(guild, options = {}) {
   const fetched = await fetchGuildChannelsOnce(guild)
   if (isGuildChannelListUnavailable(fetched)) return null
 
@@ -80,6 +80,9 @@ async function findOrCreateReservedNightCategory(guild) {
     name: RESERVED_NIGHT_AREA_CATEGORY_NAME,
     type: ChannelType.GuildCategory,
     reason: 'BOTC reserved cottage category'
+  }).then(category => {
+    if (options.managedCategories) options.managedCategories.reservedNightAreaCategory = category
+    return category
   }).catch(err => {
     log.recoverable('create-reserved-night-category', err, { guildId: guild.id })
     return null
@@ -131,7 +134,7 @@ async function acquireReservedChannel(guild, parent, slot) {
   return channel
 }
 
-async function ensureReservedVoiceChannel(guild, category, slot) {
+async function ensureReservedVoiceChannel(guild, category, slot, options = {}) {
   const existing = getReservedVoiceChannelForSlot(guild, category, slot)
   const overwrites = createHiddenNightVoicePermissions(guild, getBotUserId(guild))
   if (existing) return refreshReservedChannel(existing, category, overwrites)
@@ -142,6 +145,9 @@ async function ensureReservedVoiceChannel(guild, category, slot) {
     parent: category.id,
     reason: 'BOTC reserved cottage voice channel',
     permissionOverwrites: overwrites
+  }).then(channel => {
+    if (options.managedChannels) options.managedChannels[`reservedNightVoice${slot}`] = channel
+    return channel
   }).catch(err => {
     log.recoverable('create-reserved-night-voice', err, {
       guildId: guild.id,

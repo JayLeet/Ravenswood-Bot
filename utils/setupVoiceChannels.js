@@ -76,7 +76,7 @@ const SETUP_SHARED_VOICE_CHANNELS = Object.freeze([
   }
 ])
 
-async function ensureSetupSharedVoiceChannels(guild, category, gameRoles) {
+async function ensureSetupSharedVoiceChannels(guild, category, gameRoles, options = {}) {
   const channels = {}
   const roleIds = createSetupVoiceRoleIds(gameRoles)
   const overwriteValidation = validateSetupPermissionOverwriteTargets(
@@ -87,7 +87,7 @@ async function ensureSetupSharedVoiceChannels(guild, category, gameRoles) {
 
   for (const config of SETUP_SHARED_VOICE_CHANNELS) {
     const overwrites = createSetupVoiceChannelPermissions(guild, roleIds, config)
-    const channel = await findOrCreateSetupVoiceChannel(guild, category, config, overwrites)
+    const channel = await findOrCreateSetupVoiceChannel(guild, category, config, overwrites, options)
     if (!channel) return { ok: false, message: `I could not create ${config.name}.` }
     channels[config.key] = channel
   }
@@ -166,7 +166,7 @@ function createWaitingRoomHiddenRoleOverwrites(roleIds = {}) {
   }))
 }
 
-async function findOrCreateSetupVoiceChannel(guild, category, config, overwrites) {
+async function findOrCreateSetupVoiceChannel(guild, category, config, overwrites, options = {}) {
   const existing = findSetupVoiceChannel(guild, config.lookupNames)
 
   if (existing) {
@@ -180,6 +180,9 @@ async function findOrCreateSetupVoiceChannel(guild, category, config, overwrites
     parent: category?.id || null,
     reason: config.reason,
     permissionOverwrites: overwrites
+  }).then(channel => {
+    if (options.managedChannels && config.key) options.managedChannels[config.key] = channel
+    return channel
   }).catch(err => {
     log.recoverable('create-setup-shared-voice-channel', err, { guildId: guild.id, name: config.name, parentId: category?.id })
     return null

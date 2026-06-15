@@ -139,6 +139,7 @@ async function handleCreateMissing(interaction, stateByUser) {
       })
     }
     channels[key] = created
+    state.managedChannels[key] = created
   }
 
   state.channels = channels
@@ -165,6 +166,7 @@ async function handleConfirm(interaction, context) {
   const result = await runSetup(interaction, context, {
     manualChannels: true,
     manualChannelSelection: selection,
+    manualManagedChannels: state.managedChannels,
     onProgress
   })
   context.stateByUser.delete(getStateKey(interaction))
@@ -195,9 +197,13 @@ function updatePicker(interaction, selection, notice = null) {
 function getPickerState(interaction, stateByUser) {
   const key = getStateKey(interaction)
   const existing = stateByUser.get(key)
-  if (existing) return existing
+  if (existing) {
+    existing.managedChannels ??= {}
+    return existing
+  }
   const created = {
     channels: createExistingSetupChannelSelection(interaction.guild),
+    managedChannels: {},
     updatedAt: Date.now()
   }
   stateByUser.set(key, created)

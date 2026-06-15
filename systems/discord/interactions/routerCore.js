@@ -16,6 +16,7 @@ const { isRequestDecisionInteraction } = require('../../../utils/requestDecision
 const { isBotUpdateNotificationInteraction } = require('../../../utils/botUpdateNotifications')
 const { isSetupAccessChoiceInteraction } = require('../../../utils/setupAccessChoice')
 const { isSetupChannelsInteraction } = require('../../../utils/setupChannelPicker')
+const { isSetupDeleteInteraction } = require('../../../utils/setupDelete')
 const { isSetupUnsafeRoleInteraction } = require('../../../utils/setupUnsafeRoles')
 const { isStorytellerRequestInteraction } = require('../../../utils/storytellerRequestButtons')
 const { isFirstJoinSetupNoticeInteraction } = require('../firstJoinSetupNotice')
@@ -57,7 +58,7 @@ function createInteractionRouter(deps) {
     handleNominationRequestInteraction, handlePlayerGrimoireInteraction,
     handlePrivateVoiceRequestInteraction,
     handleRequestDecisionInteraction, handleSetupAccessChoiceInteraction,
-    handleSetupChannelsInteraction, handleSetupSettingsInteraction, handleSetupUnsafeRoleInteraction,
+    handleSetupChannelsInteraction, handleSetupDeleteInteraction, handleSetupSettingsInteraction, handleSetupUnsafeRoleInteraction,
     handleStorytellerRequestInteraction, handleStorytellerDashboardInteraction,
     handleVotingInteraction, postOrUpdateStorytellerDashboard
   } = deps
@@ -83,7 +84,7 @@ function createInteractionRouter(deps) {
         handleNominationRequestInteraction, handlePlayerGrimoireInteraction,
         handlePrivateVoiceRequestInteraction,
         handleRequestDecisionInteraction, handleSetupAccessChoiceInteraction,
-        handleSetupChannelsInteraction, handleSetupSettingsInteraction, handleSetupUnsafeRoleInteraction,
+        handleSetupChannelsInteraction, handleSetupDeleteInteraction, handleSetupSettingsInteraction, handleSetupUnsafeRoleInteraction,
         handleStorytellerRequestInteraction, handleStorytellerDashboardInteraction,
         handleVotingInteraction
       })
@@ -168,6 +169,7 @@ async function tryComponentHandlers(interaction, handlers) {
   if (interaction.isButton() && isIdleLobbyInteraction(interaction.customId)) return runMatchedHandler(handlers.handleIdleLobbyInteraction, interaction)
   if ((interaction.isButton() || interaction.isChannelSelectMenu?.()) && isBotUpdateNotificationInteraction(interaction.customId)) return runMatchedHandler(handlers.handleBotUpdateNotificationInteraction, interaction)
   if (interaction.isButton() && isFirstJoinSetupNoticeInteraction(interaction.customId)) return runMatchedHandler(handlers.handleFirstJoinSetupNoticeInteraction, interaction)
+  if (interaction.isButton() && isSetupDeleteInteraction(interaction.customId)) return runMatchedHandler(handlers.handleSetupDeleteInteraction, interaction)
   if (interaction.isButton() && isSetupAccessChoiceInteraction(interaction.customId)) return runMatchedHandler(handlers.handleSetupAccessChoiceInteraction, interaction)
   if ((interaction.isButton() || interaction.isChannelSelectMenu?.()) && isSetupChannelsInteraction(interaction.customId)) return runMatchedHandler(handlers.handleSetupChannelsInteraction, interaction)
   if (interaction.isButton() && isSetupUnsafeRoleInteraction(interaction.customId)) return runMatchedHandler(handlers.handleSetupUnsafeRoleInteraction, interaction)

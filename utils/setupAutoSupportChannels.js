@@ -23,6 +23,7 @@ async function prepareAutoSetupSupportChannels(guild, category, gameRoles) {
     return {
       ok: true,
       cottageCategory: cottagePool.category,
+      reservedNightVoiceChannels: cottagePool.channels,
       sharedVoiceChannels: sharedVoice.channels
     }
   } catch {

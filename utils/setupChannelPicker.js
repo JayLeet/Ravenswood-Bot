@@ -12,6 +12,9 @@ const {
 const {
   AUTO_SETUP_CATEGORY_NAME
 } = require('./botcChannelNames')
+const {
+  createSetupDeleteButton
+} = require('./setupDelete')
 
 const SETUP_CHANNEL_PICKER_PREFIX = 'botc:setup-channels'
 const SETUP_CHANNEL_PICKER_ACTIONS = Object.freeze({
@@ -64,7 +67,8 @@ function createSetupChannelPickerEmbed(selection, missing, notice = null) {
     .setTitle('Choose setup channels')
     .setDescription([
       'Pick existing text channels for the main BOTC setup areas.',
-      'Use `Create missing channels` if you want me to make any channels that are not selected yet.'
+      'Use `Create missing channels` if you want me to make any channels that are not selected yet.',
+      '`Delete BOTC setup` removes only the setup channels and categories the bot created.'
     ].join('\n'))
     .addFields(SETUP_CHANNEL_PICKER_KEYS.map(key => ({
       name: SETUP_CHANNEL_PICKER_DETAILS[key].label,
@@ -111,7 +115,8 @@ function createSetupChannelPickerRows(selection, missing) {
       new ButtonBuilder()
         .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.cancel))
         .setLabel('Cancel')
-        .setStyle(ButtonStyle.Secondary)
+        .setStyle(ButtonStyle.Secondary),
+      createSetupDeleteButton()
     )
   )
 }

@@ -38,6 +38,7 @@ const { createRequestDecisionInteractionSystem } = require('../discord/interacti
 const { createRoleInfoRefreshSystem } = require('../discord/interactions/roleInfoRefresh')
 const { createSetupAccessChoiceInteractionSystem } = require('../discord/interactions/setupAccessChoice')
 const { createSetupChannelsInteractionSystem } = require('../discord/interactions/setupChannels')
+const { createSetupDeleteInteractionSystem } = require('../discord/interactions/setupDelete')
 const { createSetupSettingsPanelSystem } = require('../discord/interactions/setupSettingsPanel')
 const { createSetupUnsafeRoleInteractionSystem } = require('../discord/interactions/setupUnsafeRoles')
 const { createStorytellerRequestInteractionSystem } = require('../discord/interactions/storytellerRequests')
@@ -129,6 +130,7 @@ function createRuntimeSystems({ client, games, serverConfigs }) {
   })
   const setupAccessChoice = createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfigs, serverConfigs })
   const setupChannels = createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, serverConfigs })
+  const setupDelete = createSetupDeleteInteractionSystem({ gameLifecycle, saveServerConfigs, serverConfigs })
   const setupUnsafeRoles = createSetupUnsafeRoleInteractionSystem({ gameManager, saveServerConfigs, serverConfigs })
   const firstJoinSetupNotice = createFirstJoinSetupNoticeInteractionSystem({ client, gameManager, saveServerConfigs, serverConfigs })
   const nominationRequests = createNominationRequestInteractionSystem({
@@ -259,6 +261,7 @@ function createRuntimeSystems({ client, games, serverConfigs }) {
     handleRequestDecisionInteraction: requestDecisions.handleRequestDecisionInteraction,
     handleSetupAccessChoiceInteraction: setupAccessChoice.handleSetupAccessChoiceInteraction,
     handleSetupChannelsInteraction: setupChannels.handleSetupChannelsInteraction,
+    handleSetupDeleteInteraction: setupDelete.handleSetupDeleteInteraction,
     handleSetupSettingsInteraction: setupSettings.handleSetupSettingsInteraction,
     handleSetupUnsafeRoleInteraction: setupUnsafeRoles.handleSetupUnsafeRoleInteraction,
     handleStorytellerRequestInteraction: storytellerRequests.handleStorytellerRequestInteraction,
