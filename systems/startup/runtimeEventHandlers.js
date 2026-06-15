@@ -76,10 +76,11 @@ function createGuildCreateHandler({
       await ensureConfiguredGuildReady(client, guild, serverConfig).catch(err => {
         logError(console, `[BOTC][GuildCreate] Setup readiness failed for ${guild.id}`, err)
       })
-      return
     }
 
     const notice = await sendFirstJoinSetupNoticeOnce(guild, {
+      allowSetupComplete: true,
+      force: true,
       isSetupComplete,
       saveServerConfigs,
       serverConfigs
@@ -119,10 +120,10 @@ async function sendMissingFirstJoinSetupNotices({ client, isSetupComplete, saveS
   return { sent, skipped }
 }
 
-async function sendFirstJoinSetupNoticeOnce(guild, { isSetupComplete, saveServerConfigs, serverConfigs }) {
+async function sendFirstJoinSetupNoticeOnce(guild, { allowSetupComplete = false, force = false, isSetupComplete, saveServerConfigs, serverConfigs }) {
   const serverConfig = serverConfigs.get(guild.id)
-  if (isSetupComplete(serverConfig)) return { ok: false, reason: 'setup-complete' }
-  if (serverConfig?.firstJoinSetupNoticeSentAt) return { ok: false, reason: 'already-sent' }
+  if (!allowSetupComplete && isSetupComplete(serverConfig)) return { ok: false, reason: 'setup-complete' }
+  if (!force && serverConfig?.firstJoinSetupNoticeSentAt) return { ok: false, reason: 'already-sent' }
 
   const notice = await sendFirstJoinSetupNotice(guild)
   if (!notice.ok) return notice

@@ -42,7 +42,8 @@ function createRoleCreateColorOptions(options) {
   if (!Object.prototype.hasOwnProperty.call(options, 'color')) return options
 
   const { color, colors, ...rest } = options
-  if (colors) return { ...rest, colors }
+  if (colors !== undefined && colors !== null) return { ...rest, colors }
+  if (color === undefined || color === null) return rest
   return {
     ...rest,
     colors: { primaryColor: color }
