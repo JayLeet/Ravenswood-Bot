@@ -1,20 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.0.0
-Latest update type: major
+Current version: 1.0.1
+Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.0.0
-Type: major
+Version: 1.0.1
+Type: patch
 Date: 2026-06-15
 Requires /setup: no
 Changes:
-- First public release of Ravenswood Bot.
-- Includes setup channels, game management, Storyteller tools, player commands, nominations, voting, and cleanup.
+- Fixed first-time setup checks and setup buttons in new servers.
+- Missing manual setup channels are now created inside Ravenswood Bluff when no picked channel already has a category.
 
 Latest medium update
 --------------------
@@ -24,4 +24,10 @@ None tracked yet.
 Latest major update
 -------------------
 
-Same as latest update.
+Version: 1.0.0
+Type: major
+Date: 2026-06-15
+Requires /setup: no
+Changes:
+- First public release of Ravenswood Bot.
+- Includes setup channels, game management, Storyteller tools, player commands, nominations, voting, and cleanup.

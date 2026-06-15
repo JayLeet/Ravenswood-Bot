@@ -17,6 +17,9 @@ const {
   runSetup
 } = require('../../../utils/setupCommand')
 const {
+  findOrCreateAutoSetupCategory
+} = require('../../../utils/setupAutoCategory')
+const {
   logSetupRecoverable
 } = require('../../../utils/setupLogging')
 const {
@@ -116,10 +119,16 @@ async function handleChannelSelect(interaction, key, stateByUser) {
 async function handleCreateMissing(interaction, stateByUser) {
   const state = getPickerState(interaction, stateByUser)
   const channels = normalizeSetupChannelSelection(state.channels)
-  const parent = findNewChannelParent(interaction, channels)
+  const parentResult = await findNewChannelParent(interaction, channels)
+  if (!parentResult.ok) {
+    return updatePicker(interaction, channels, {
+      title: 'Category creation failed',
+      message: 'I could not create or find the Ravenswood Bluff category. Check Manage Channels and try again.'
+    })
+  }
 
   for (const key of getMissingSetupChannelKeys(channels)) {
-    const created = await createMissingSetupChannel(interaction, key, parent)
+    const created = await createMissingSetupChannel(interaction, key, parentResult.parentId)
     if (!created) {
       return updatePicker(interaction, channels, {
         title: 'Channel creation failed',
@@ -189,9 +198,14 @@ function getPickerState(interaction, stateByUser) {
   return created
 }
 
-function findNewChannelParent(interaction, channels) {
+async function findNewChannelParent(interaction, channels) {
   const selected = SETUP_CHANNEL_PICKER_KEYS.map(key => channels[key]).find(Boolean)
-  return selected?.parentId || selected?.parent?.id || interaction.channel?.parentId || null
+  const selectedParentId = selected?.parentId || selected?.parent?.id || null
+  if (selectedParentId) return { ok: true, parentId: selectedParentId }
+
+  const result = await findOrCreateAutoSetupCategory(interaction.guild)
+  if (!result.ok) return { ok: false, parentId: null }
+  return { ok: true, parentId: result.category?.id || null }
 }
 
 function resolveSelectedChannel(interaction) {

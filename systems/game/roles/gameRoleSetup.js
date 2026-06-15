@@ -1,3 +1,6 @@
+const {
+  ensureManagedGrimoireSpectatorRole
+} = require('./managedRoleMaintenance')
 
 async function ensureGameRolesForGuild(manager, guild) {
   const roles = []
