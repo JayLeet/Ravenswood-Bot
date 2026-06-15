@@ -109,6 +109,9 @@ function hasAllSetupChannelOptions(channels) {
 
 async function createAutoSetupChannels(guild, gameManager, options = {}) {
   const previousConfig = options.previousConfig || {}
+  const managedChannels = {}
+  const managedCategories = {}
+  const managedOptions = { managedChannels, managedCategories }
   const reset = await resetAutoSetupCategories(guild, {
     preserveChannelIds: [previousConfig.botUpdateChannelId].filter(Boolean)
   })
@@ -124,7 +127,7 @@ async function createAutoSetupChannels(guild, gameManager, options = {}) {
   const overwriteValidation = validateSetupPermissionOverwriteTargets(guild, overwriteTargets)
   if (!overwriteValidation.ok) return overwriteValidation
 
-  const categoryResult = await findOrCreateAutoSetupCategory(guild)
+  const categoryResult = await findOrCreateAutoSetupCategory(guild, managedOptions)
   if (!categoryResult.ok) {
     return {
       ok: false,
@@ -164,10 +167,11 @@ async function createAutoSetupChannels(guild, gameManager, options = {}) {
   }
 
   const botUpdateChannel = botUpdateChannelResult.channel
+  if (botUpdateChannelResult.source === 'created') managedChannels.botUpdateChannel = botUpdateChannel
   const channels = {}
 
   for (const config of [...Object.values(AUTO_SETUP_CHANNELS), AUTO_SETUP_GAME_LOG_CHANNEL]) {
-    const channel = await findOrCreateTextChannel(guild, category, config, gameRoles)
+    const channel = await findOrCreateTextChannel(guild, category, config, gameRoles, managedOptions)
     if (!channel) {
       return {
         ok: false,
@@ -180,9 +184,9 @@ async function createAutoSetupChannels(guild, gameManager, options = {}) {
 
   await orderSetupTextChannels(guild, channels)
 
-  const supportChannelsReady = prepareAutoSetupSupportChannels(guild, category, gameRoles)
+  const supportChannelsReady = prepareAutoSetupSupportChannels(guild, category, gameRoles, managedOptions)
 
-  return { ok: true, autoCreated: true, category, channels, supportChannelsReady }
+  return { ok: true, autoCreated: true, category, channels, managedCategories, managedChannels, supportChannelsReady }
 }
 
 async function ensurePostGameChannel(guild, category, gameManager = null, options = {}) {

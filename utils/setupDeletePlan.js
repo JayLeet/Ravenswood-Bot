@@ -2,28 +2,29 @@ const {
   ChannelType
 } = require('discord.js')
 function createSetupDeletePlan(guild, serverConfig = {}) {
-  const channels = getCachedGuildChannels(guild)
-  const trackedChannelIds = new Set(toStringArray(serverConfig.setupManagedChannelIds))
-  const trackedCategoryIds = new Set(toStringArray(serverConfig.setupManagedCategoryIds))
-  const categories = channels.filter(channel => shouldDeleteSetupCategory(channel, trackedCategoryIds))
-  const channelTargets = channels.filter(channel =>
-    shouldDeleteSetupChannel(channel, trackedChannelIds)
-  )
+  const trackedChannelIds = uniqueIds(toStringArray(serverConfig.setupManagedChannelIds))
+  const trackedCategoryIds = uniqueIds(toStringArray(serverConfig.setupManagedCategoryIds))
+  const channels = trackedChannelIds
+    .map(channelId => getCachedGuildChannel(guild, channelId))
+    .filter(shouldDeleteSetupChannel)
+  const categories = trackedCategoryIds
+    .map(channelId => getCachedGuildChannel(guild, channelId))
+    .filter(shouldDeleteSetupCategory)
 
   return {
     categories,
-    channels: uniqueChannels(channelTargets)
+    channels
   }
 }
 
-function shouldDeleteSetupCategory(channel, trackedCategoryIds) {
+function shouldDeleteSetupCategory(channel) {
   if (channel?.type !== ChannelType.GuildCategory) return false
-  return trackedCategoryIds.has(String(channel.id))
+  return true
 }
 
-function shouldDeleteSetupChannel(channel, trackedChannelIds) {
+function shouldDeleteSetupChannel(channel) {
   if (!channel || channel.type === ChannelType.GuildCategory) return false
-  return trackedChannelIds.has(String(channel.id))
+  return true
 }
 
 function hasRemainingChildren(guild, category, deletedChannelIds) {
@@ -33,17 +34,20 @@ function hasRemainingChildren(guild, category, deletedChannelIds) {
   )
 }
 
-function uniqueChannels(channels) {
-  const seen = new Set()
-  return channels.filter(channel => {
-    if (!channel?.id || seen.has(String(channel.id))) return false
-    seen.add(String(channel.id))
-    return true
-  })
-}
-
 function toStringArray(value) {
   return Array.isArray(value) ? value.filter(Boolean).map(String) : []
+}
+
+function uniqueIds(ids) {
+  return [...new Set(ids.filter(Boolean).map(String))]
+}
+
+function getCachedGuildChannel(guild, channelId) {
+  const cache = guild?.channels?.cache
+  const id = String(channelId || '')
+  if (!cache || !id) return null
+  if (typeof cache.get === 'function') return cache.get(id) || null
+  return getCachedGuildChannels(guild).find(channel => String(channel?.id) === id) || null
 }
 
 function getCachedGuildChannels(guild) {

@@ -5,9 +5,6 @@ const {
   EmbedBuilder
 } = require('discord.js')
 const {
-  BOT_UPDATE_CHANNEL_NAME
-} = require('./botcChannelNames')
-const {
   queuedChannelDelete
 } = require('./discord/channelActions')
 const {
@@ -139,36 +136,10 @@ function createPostDeleteServerConfig(config = {}) {
 }
 
 function collectManagedSetupIds(setupResult = {}) {
-  return setupResult.autoCreated
-    ? {
-        setupManagedCategoryIds: collectManagedCategoryIds(setupResult),
-        setupManagedChannelIds: collectAutoManagedChannelIds(setupResult)
-      }
-    : {
-        setupManagedCategoryIds: uniqueIds(toObjectValues(setupResult.managedCategories)),
-        setupManagedChannelIds: uniqueIds(toObjectValues(setupResult.managedChannels))
-      }
-}
-
-function collectManagedCategoryIds(setupResult = {}) {
-  return uniqueIds([
-    setupResult.category,
-    setupResult.cottageCategory,
-    ...toObjectValues(setupResult.managedCategories)
-  ])
-}
-
-function collectAutoManagedChannelIds(setupResult = {}) {
-  const channels = { ...(setupResult.channels || {}) }
-  if (channels.botUpdateChannel?.name !== BOT_UPDATE_CHANNEL_NAME) {
-    delete channels.botUpdateChannel
+  return {
+    setupManagedCategoryIds: uniqueIds(toObjectValues(setupResult.managedCategories)),
+    setupManagedChannelIds: uniqueIds(toObjectValues(setupResult.managedChannels))
   }
-  return uniqueIds([
-    ...toObjectValues(channels),
-    ...toObjectValues(setupResult.reservedNightVoiceChannels),
-    ...toObjectValues(setupResult.sharedVoiceChannels),
-    ...toObjectValues(setupResult.managedChannels)
-  ])
 }
 
 function createSetupDeleteResultEmbed(result) {

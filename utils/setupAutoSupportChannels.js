@@ -10,11 +10,11 @@ const {
   applyStorytellerVoiceControlsToCategory
 } = require('./setupCategoryPermissions')
 
-async function prepareAutoSetupSupportChannels(guild, category, gameRoles) {
+async function prepareAutoSetupSupportChannels(guild, category, gameRoles, options = {}) {
   try {
     const [sharedVoice, cottagePool] = await Promise.all([
-      ensureSetupSharedVoiceChannels(guild, category, gameRoles),
-      ensureCottagePoolWithPermissions(guild, gameRoles)
+      ensureSetupSharedVoiceChannels(guild, category, gameRoles, options),
+      ensureCottagePoolWithPermissions(guild, gameRoles, options)
     ])
 
     if (!sharedVoice.ok) return sharedVoice
@@ -34,8 +34,8 @@ async function prepareAutoSetupSupportChannels(guild, category, gameRoles) {
   }
 }
 
-async function ensureCottagePoolWithPermissions(guild, gameRoles) {
-  const cottagePool = await ensureReservedNightAreaPool(guild)
+async function ensureCottagePoolWithPermissions(guild, gameRoles, options = {}) {
+  const cottagePool = await ensureReservedNightAreaPool(guild, options)
   if (!cottagePool.ok) return cottagePool
 
   await applyStorytellerVoiceControlsToCategory(cottagePool.category, gameRoles)

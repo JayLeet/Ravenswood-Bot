@@ -3,7 +3,7 @@ const { AUTO_SETUP_CATEGORY_NAME } = require('./botcChannelNames')
 const { queuedGuildChannelCreate } = require('./discord/channelActions')
 const { logSetupRecoverable } = require('./setupLogging')
 
-async function findOrCreateAutoSetupCategory(guild) {
+async function findOrCreateAutoSetupCategory(guild, options = {}) {
   const refreshed = await refreshGuildChannels(guild, 'fetch-auto-setup-channels-before-category')
   if (!refreshed.ok) return refreshed
 
@@ -16,7 +16,10 @@ async function findOrCreateAutoSetupCategory(guild) {
     type: ChannelType.GuildCategory,
     reason: 'BOTC setup category'
   })
-    .then(category => ({ ok: true, category }))
+    .then(category => {
+      if (options.managedCategories) options.managedCategories.setupCategory = category
+      return { ok: true, category }
+    })
     .catch(err => {
       logSetupRecoverable('create-auto-setup-category', err, { guildId: guild.id, name: AUTO_SETUP_CATEGORY_NAME })
       return { ok: false, error: err }

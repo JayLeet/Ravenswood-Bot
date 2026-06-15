@@ -1,22 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.0
-Latest update type: medium
+Current version: 1.1.1
+Latest update type: minor
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.0
-Type: medium
+Version: 1.1.1
+Type: minor
 Date: 2026-06-15
 Requires /setup: no
 Changes:
-- Added admin-only `/delete` for removing BOTC Bot setup channels and categories created by the bot while preserving user-created channels.
-- Added `Delete BOTC setup` buttons to the first-join setup notice, `/setup`, and `/setup-channels`.
-- `/setup-channels` now reuses existing Ravenswood Bluff setup channels instead of creating duplicates after `/setup`.
-- Setup-managed role creation now uses Discord's current role color payload.
+- Tightened `/delete` so it deletes only setup channel/category IDs stored by `/setup`.
+- Preserves user-created or untracked channels even when they use BOTC-style names.
 
 Latest medium update
 --------------------
