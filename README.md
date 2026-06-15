@@ -61,10 +61,6 @@ Required values:
 - `DISCORD_TOKEN`: the bot token from the Discord Developer Portal.
 - `CLIENT_ID`: the Discord application/client ID.
 
-Public runtime package:
-
-- `PUBLIC_RELEASE=true`: use this for the public runtime package.
-
 Install dependencies:
 
 ```bash
