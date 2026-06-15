@@ -1,0 +1,15 @@
+# Keep repository text files consistent across Windows, macOS, and Linux.
+# Most source/config files use LF line endings.
+.gitattributes text eol=lf
+.gitignore text eol=lf
+
+*.js text eol=lf
+*.json text eol=lf
+*.md text eol=lf
+*.ts text eol=lf
+*.d.ts text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+
+# Windows batch files need CRLF line endings so cmd.exe handles them correctly.
+*.bat text eol=crlf

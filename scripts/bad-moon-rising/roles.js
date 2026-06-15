@@ -1,0 +1,28 @@
+/** @type {import('../../types').ScriptRole[]} */
+module.exports = [
+  { id: 'grandmother', name: 'Grandmother', team: 'townsfolk', ability: null },
+  { id: 'sailor', name: 'Sailor', team: 'townsfolk', ability: null },
+  { id: 'chambermaid', name: 'Chambermaid', team: 'townsfolk', ability: null },
+  { id: 'exorcist', name: 'Exorcist', team: 'townsfolk', ability: null },
+  { id: 'innkeeper', name: 'Innkeeper', team: 'townsfolk', ability: null },
+  { id: 'gambler', name: 'Gambler', team: 'townsfolk', ability: null },
+  { id: 'gossip', name: 'Gossip', team: 'townsfolk', ability: null },
+  { id: 'courtier', name: 'Courtier', team: 'townsfolk', ability: null },
+  { id: 'professor', name: 'Professor', team: 'townsfolk', ability: null },
+  { id: 'minstrel', name: 'Minstrel', team: 'townsfolk', ability: null },
+  { id: 'tea_lady', name: 'Tea Lady', team: 'townsfolk', ability: null },
+  { id: 'pacifist', name: 'Pacifist', team: 'townsfolk', ability: null },
+  { id: 'fool', name: 'Fool', team: 'townsfolk', ability: null },
+  { id: 'goon', name: 'Goon', team: 'outsider', ability: null },
+  { id: 'lunatic', name: 'Lunatic', team: 'outsider', ability: null },
+  { id: 'tinker', name: 'Tinker', team: 'outsider', ability: null },
+  { id: 'moonchild', name: 'Moonchild', team: 'outsider', ability: null },
+  { id: 'godfather', name: 'Godfather', team: 'minion', ability: null },
+  { id: 'devils_advocate', name: "Devil's Advocate", team: 'minion', ability: null },
+  { id: 'assassin', name: 'Assassin', team: 'minion', ability: null },
+  { id: 'mastermind', name: 'Mastermind', team: 'minion', ability: null },
+  { id: 'zombuul', name: 'Zombuul', team: 'demon', ability: null },
+  { id: 'pukka', name: 'Pukka', team: 'demon', ability: null },
+  { id: 'shabaloth', name: 'Shabaloth', team: 'demon', ability: null },
+  { id: 'po', name: 'Po', team: 'demon', ability: null }
+]

@@ -1,0 +1,32 @@
+BOTC Bot Update Log
+===================
+
+Current version: 0.23.0
+Latest update type: medium
+Requires /setup: no
+
+
+Latest update
+-------------
+
+Version: 0.23.0
+Type: medium
+Date: 2026-06-15
+Requires /setup: no
+Changes:
+- The first-join setup notice is now an embed with `/setup-check`, `/setup`, and `/setup-channels` buttons plus short explanations for each setup path.
+- `/setup-channels` now opens an interactive picker instead of requiring four slash-command channel options.
+- Admins can choose existing manual setup channels or create any missing manual channels before continuing setup.
+- `/setup-check` now checks whether the bot can run setup safely instead of failing on setup channels that do not exist yet.
+- Saved setup channel status is no longer listed as failed setup-check rows before `/setup` has created channels.
+- `/setup-check` replies now stay visible instead of auto-deleting as generic command success feedback.
+
+Latest medium update
+--------------------
+
+Same as latest update.
+
+Latest major update
+-------------------
+
+None tracked yet.

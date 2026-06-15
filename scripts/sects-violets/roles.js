@@ -1,0 +1,28 @@
+/** @type {import('../../types').ScriptRole[]} */
+module.exports = [
+  { id: 'clockmaker', name: 'Clockmaker', team: 'townsfolk', ability: null },
+  { id: 'dreamer', name: 'Dreamer', team: 'townsfolk', ability: null },
+  { id: 'snake_charmer', name: 'Snake Charmer', team: 'townsfolk', ability: null },
+  { id: 'mathematician', name: 'Mathematician', team: 'townsfolk', ability: null },
+  { id: 'flowergirl', name: 'Flowergirl', team: 'townsfolk', ability: null },
+  { id: 'town_crier', name: 'Town Crier', team: 'townsfolk', ability: null },
+  { id: 'oracle', name: 'Oracle', team: 'townsfolk', ability: null },
+  { id: 'savant', name: 'Savant', team: 'townsfolk', ability: null },
+  { id: 'seamstress', name: 'Seamstress', team: 'townsfolk', ability: null },
+  { id: 'philosopher', name: 'Philosopher', team: 'townsfolk', ability: null },
+  { id: 'artist', name: 'Artist', team: 'townsfolk', ability: null },
+  { id: 'juggler', name: 'Juggler', team: 'townsfolk', ability: null },
+  { id: 'sage', name: 'Sage', team: 'townsfolk', ability: null },
+  { id: 'mutant', name: 'Mutant', team: 'outsider', ability: null },
+  { id: 'sweetheart', name: 'Sweetheart', team: 'outsider', ability: null },
+  { id: 'barber', name: 'Barber', team: 'outsider', ability: null },
+  { id: 'klutz', name: 'Klutz', team: 'outsider', ability: null },
+  { id: 'evil_twin', name: 'Evil Twin', team: 'minion', ability: null },
+  { id: 'witch', name: 'Witch', team: 'minion', ability: null },
+  { id: 'cerenovus', name: 'Cerenovus', team: 'minion', ability: null },
+  { id: 'pit_hag', name: 'Pit-Hag', team: 'minion', ability: null },
+  { id: 'fang_gu', name: 'Fang Gu', team: 'demon', ability: null },
+  { id: 'vigormortis', name: 'Vigormortis', team: 'demon', ability: null },
+  { id: 'no_dashii', name: 'No Dashii', team: 'demon', ability: null },
+  { id: 'vortox', name: 'Vortox', team: 'demon', ability: null }
+]
