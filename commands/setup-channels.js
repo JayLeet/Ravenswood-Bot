@@ -3,9 +3,12 @@ const {
 } = require('discord.js')
 const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
 const {
-  createExistingSetupChannelSelection,
-  createSetupChannelPickerPayload
-} = require('../utils/setupChannelPicker')
+  createSetupAccessChoicePayload,
+  SETUP_ACCESS_MODES
+} = require('../utils/setupAccessChoice')
+const {
+  hasAdministratorOrGlobalCommandAccess
+} = require('../utils/commandAccess')
 
 const options = []
 
@@ -22,8 +25,18 @@ module.exports = {
   default_member_permissions: PermissionFlagsBits.Administrator.toString(),
   setupExempt: true,
 
-  execute: wrapCommand(async interaction => ({
-    ok: true,
-    ...createSetupChannelPickerPayload(createExistingSetupChannelSelection(interaction.guild))
-  }))
+  execute: wrapCommand(executeSetupChannelsCommand)
 }
+
+async function executeSetupChannelsCommand(interaction) {
+  if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
+    return { ok: false, error: { message: 'Only a server administrator or bot owner access user can choose setup channels.' } }
+  }
+
+  return {
+    ok: true,
+    ...createSetupAccessChoicePayload({ mode: SETUP_ACCESS_MODES.manual })
+  }
+}
+
+module.exports.executeSetupChannelsCommand = executeSetupChannelsCommand

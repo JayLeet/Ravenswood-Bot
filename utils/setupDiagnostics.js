@@ -12,7 +12,7 @@ function formatSetupCheckReport(report) {
   const lines = [
     '**Setup readiness**',
     '',
-    'This checks whether I can create or refresh setup. Saved setup channels are handled by `/setup` and manual channel choices belong in `/setup-channels`.'
+    'This checks whether I have the Discord permissions needed to run `/setup` or `/setup-channels`.'
   ]
 
   lines.push(formatCheck(
@@ -21,14 +21,8 @@ function formatSetupCheckReport(report) {
     formatPermissionIssue(report.missingPermissions)
   ))
 
-  lines.push(formatCheck(
-    'Game roles',
-    report.rolesReady?.ok === true,
-    report.rolesReady?.message || 'Role setup could not be verified.'
-  ))
-
   if (report.ok) {
-    lines.push('', 'Everything looks ready to run `/setup`.')
+    lines.push('', 'Everything looks ready to choose setup.')
   } else {
     lines.push('', 'Fix the failed checks above, then run `/setup-check` again.')
   }
@@ -55,8 +49,7 @@ function getConfiguredChannelEntries(serverConfig, channelsByKey = {}) {
 }
 
 function isSetupReportOk(report) {
-  return !(report.missingPermissions || []).length &&
-    report.rolesReady?.ok === true
+  return !(report.missingPermissions || []).length
 }
 
 module.exports = {

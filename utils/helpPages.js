@@ -16,7 +16,7 @@ const HELP_PAGES = Object.freeze([
     title: 'BOTC Bot Help - Setup and Lobby',
     description: [
       '`/setup` - Server-admin only, with bot owner override. Opens setup visibility buttons for public setup or private setup with the BOTC access role.',
-      '`/setup-check` - Server-admin only, with bot owner override. Checks whether setup permissions and roles look ready before running setup.',
+      '`/setup-check` - Server-admin only, with bot owner override. Checks whether setup permissions look ready before choosing setup.',
       '`/setup-channels` - Server-admin only, with bot owner override. Opens a picker to choose existing setup channels or create missing manual channels.',
       '`/delete` - Server-admin only, with bot owner override. Deletes BOTC Bot setup channels and categories the bot created while leaving user-created channels alone.',
       '`/bot-update-channel set/show/clear` - Server-admin only, with bot owner override. Configure where BOTC Bot update embeds are posted.',

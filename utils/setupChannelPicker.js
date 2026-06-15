@@ -17,6 +17,10 @@ const {
 } = require('./setupDelete')
 
 const SETUP_CHANNEL_PICKER_PREFIX = 'botc:setup-channels'
+const SETUP_CHANNEL_PICKER_ACCESS = Object.freeze({
+  private: 'private',
+  public: 'public'
+})
 const SETUP_CHANNEL_PICKER_ACTIONS = Object.freeze({
   cancel: 'cancel',
   confirm: 'confirm',
@@ -55,17 +59,19 @@ const SETUP_CHANNEL_PICKER_DETAILS = Object.freeze({
 function createSetupChannelPickerPayload(selection = {}, options = {}) {
   const normalized = normalizeSetupChannelSelection(selection)
   const missing = getMissingSetupChannelKeys(normalized)
+  const privateAccess = options.privateAccess === true
   return {
     content: null,
-    embeds: [createSetupChannelPickerEmbed(normalized, missing, options.notice)],
-    components: createSetupChannelPickerRows(normalized, missing)
+    embeds: [createSetupChannelPickerEmbed(normalized, missing, options.notice, privateAccess)],
+    components: createSetupChannelPickerRows(normalized, missing, { privateAccess })
   }
 }
 
-function createSetupChannelPickerEmbed(selection, missing, notice = null) {
+function createSetupChannelPickerEmbed(selection, missing, notice = null, privateAccess = false) {
   const embed = new EmbedBuilder()
     .setTitle('Choose setup channels')
     .setDescription([
+      `Access choice: **${privateAccess ? 'Private with BOTC role' : 'Public setup'}**.`,
       'Pick existing text channels for the main BOTC setup areas.',
       'Use `Create missing channels` if you want me to make any channels that are not selected yet.',
       '`Delete BOTC setup` removes only the setup channels and categories the bot created.'
@@ -88,11 +94,11 @@ function createSetupChannelPickerEmbed(selection, missing, notice = null) {
   return embed
 }
 
-function createSetupChannelPickerRows(selection, missing) {
+function createSetupChannelPickerRows(selection, missing, options = {}) {
   const selectRows = SETUP_CHANNEL_PICKER_KEYS.map(key =>
     new ActionRowBuilder().addComponents(
       new ChannelSelectMenuBuilder()
-        .setCustomId(createSetupChannelSelectId(key))
+        .setCustomId(createSetupChannelSelectId(key, options))
         .setPlaceholder(SETUP_CHANNEL_PICKER_DETAILS[key].placeholder)
         .setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
         .setMinValues(1)
@@ -103,17 +109,17 @@ function createSetupChannelPickerRows(selection, missing) {
   return selectRows.concat(
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.createMissing))
+        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.createMissing, options))
         .setLabel('Create missing channels')
         .setStyle(ButtonStyle.Secondary)
         .setDisabled(missing.length === 0),
       new ButtonBuilder()
-        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.confirm))
+        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.confirm, options))
         .setLabel('Continue setup')
         .setStyle(ButtonStyle.Primary)
         .setDisabled(missing.length > 0),
       new ButtonBuilder()
-        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.cancel))
+        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.cancel, options))
         .setLabel('Cancel')
         .setStyle(ButtonStyle.Secondary),
       createSetupDeleteButton()
@@ -121,22 +127,40 @@ function createSetupChannelPickerRows(selection, missing) {
   )
 }
 
-function createSetupChannelSelectId(key) {
-  return `${SETUP_CHANNEL_PICKER_PREFIX}:${SETUP_CHANNEL_PICKER_ACTIONS.select}:${key}`
+function createSetupChannelSelectId(key, options = {}) {
+  return createSetupChannelCustomId(SETUP_CHANNEL_PICKER_ACTIONS.select, key, options)
 }
 
-function createSetupChannelActionId(action) {
-  return `${SETUP_CHANNEL_PICKER_PREFIX}:${action}`
+function createSetupChannelActionId(action, options = {}) {
+  return createSetupChannelCustomId(action, null, options)
+}
+
+function createSetupChannelCustomId(action, key = null, options = {}) {
+  const access = getSetupChannelAccessSegment(options)
+  return [
+    SETUP_CHANNEL_PICKER_PREFIX,
+    access,
+    action,
+    key
+  ].filter(Boolean).join(':')
 }
 
 function parseSetupChannelsCustomId(customId) {
   const parts = String(customId || '').split(':')
   if (parts[0] !== 'botc' || parts[1] !== 'setup-channels') return null
-  const action = parts[2] || null
-  const key = action === SETUP_CHANNEL_PICKER_ACTIONS.select ? parts[3] : null
+  let index = 2
+  let privateAccess = false
+  let accessSpecified = false
+  if (Object.values(SETUP_CHANNEL_PICKER_ACCESS).includes(parts[index])) {
+    accessSpecified = true
+    privateAccess = parts[index] === SETUP_CHANNEL_PICKER_ACCESS.private
+    index += 1
+  }
+  const action = parts[index] || null
+  const key = action === SETUP_CHANNEL_PICKER_ACTIONS.select ? parts[index + 1] : null
   if (!Object.values(SETUP_CHANNEL_PICKER_ACTIONS).includes(action)) return null
   if (key && !SETUP_CHANNEL_PICKER_KEYS.includes(key)) return null
-  return { action, key }
+  return { action, key, accessSpecified, privateAccess }
 }
 
 function isSetupChannelsInteraction(customId) {
@@ -170,6 +194,12 @@ function getMissingSetupChannelKeys(selection = {}) {
 
 function formatSelectedChannel(channel) {
   return channel?.id ? `<#${channel.id}>` : 'Not selected'
+}
+
+function getSetupChannelAccessSegment(options = {}) {
+  if (options.privateAccess === true) return SETUP_CHANNEL_PICKER_ACCESS.private
+  if (options.privateAccess === false) return SETUP_CHANNEL_PICKER_ACCESS.public
+  return null
 }
 
 function findExistingSetupChannel(guild, key, parentId = null) {
@@ -207,6 +237,7 @@ function getCachedGuildChannels(guild) {
 
 module.exports = {
   SETUP_CHANNEL_PICKER_ACTIONS,
+  SETUP_CHANNEL_PICKER_ACCESS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
   SETUP_CHANNEL_PICKER_PREFIX,

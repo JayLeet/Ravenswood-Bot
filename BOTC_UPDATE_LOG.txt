@@ -1,20 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.3
-Latest update type: minor
+Current version: 1.1.4
+Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.3
-Type: minor
-Date: 2026-06-15
+Version: 1.1.4
+Type: patch
+Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Fixes setup role creation when a managed role does not have a custom color.
-- Includes the reinvite first-join notice fix in the public release snapshot.
+- Keeps `/setup-check` as a permission-only preflight so it does not create game roles before setup is confirmed.
+- Makes `/setup-channels` ask for public or private setup before manual channel selection.
 
 Latest medium update
 --------------------

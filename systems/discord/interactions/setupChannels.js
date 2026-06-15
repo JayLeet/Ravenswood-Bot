@@ -78,11 +78,11 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.select) {
-      return handleChannelSelect(interaction, parsed.key, stateByUser)
+      return handleChannelSelect(interaction, parsed, stateByUser)
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.createMissing) {
-      return handleCreateMissing(interaction, stateByUser)
+      return handleCreateMissing(interaction, parsed, stateByUser)
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.confirm) {
@@ -103,30 +103,30 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
   }
 }
 
-async function handleChannelSelect(interaction, key, stateByUser) {
+async function handleChannelSelect(interaction, parsed, stateByUser) {
   const selected = resolveSelectedChannel(interaction)
-  const state = getPickerState(interaction, stateByUser)
+  const state = getPickerState(interaction, stateByUser, parsed)
   if (!selected) {
     return updatePicker(interaction, state.channels, {
       title: 'Channel not found',
       message: 'Discord did not include the selected channel. Pick it again or choose another channel.'
-    })
+    }, state.privateAccess)
   }
 
-  state.channels[key] = selected
+  state.channels[parsed.key] = selected
   state.updatedAt = Date.now()
-  return updatePicker(interaction, state.channels)
+  return updatePicker(interaction, state.channels, null, state.privateAccess)
 }
 
-async function handleCreateMissing(interaction, stateByUser) {
-  const state = getPickerState(interaction, stateByUser)
+async function handleCreateMissing(interaction, parsed, stateByUser) {
+  const state = getPickerState(interaction, stateByUser, parsed)
   let channels = normalizeSetupChannelSelection(state.channels)
   const parentResult = await findNewChannelParent(interaction, channels)
   if (!parentResult.ok) {
     return updatePicker(interaction, channels, {
       title: 'Category creation failed',
       message: 'I could not create or find the Ravenswood Bluff category. Check Manage Channels and try again.'
-    })
+    }, state.privateAccess)
   }
   channels = fillMissingSetupChannelSelection(channels, interaction.guild, parentResult.parentId)
 
@@ -136,7 +136,7 @@ async function handleCreateMissing(interaction, stateByUser) {
       return updatePicker(interaction, channels, {
         title: 'Channel creation failed',
         message: `I could not create ${SETUP_CHANNEL_PICKER_DETAILS[key].label}. Check Manage Channels and try again.`
-      })
+      }, state.privateAccess)
     }
     channels[key] = created
     state.managedChannels[key] = created
@@ -147,18 +147,18 @@ async function handleCreateMissing(interaction, stateByUser) {
   return updatePicker(interaction, state.channels, {
     title: 'Channels created',
     message: 'The setup channels were created or reused and selected.'
-  })
+  }, state.privateAccess)
 }
 
 async function handleConfirm(interaction, context) {
-  const state = getPickerState(interaction, context.stateByUser)
+  const state = getPickerState(interaction, context.stateByUser, parseSetupChannelsCustomId(interaction.customId))
   const selection = normalizeSetupChannelSelection(state.channels)
   const missing = getMissingSetupChannelKeys(selection)
   if (missing.length) {
     return updatePicker(interaction, selection, {
       title: 'More channels needed',
       message: `Choose or create: ${missing.map(key => SETUP_CHANNEL_PICKER_DETAILS[key].label).join(', ')}.`
-    })
+    }, state.privateAccess)
   }
 
   const onProgress = createSetupProgressUpdater(interaction)
@@ -167,7 +167,8 @@ async function handleConfirm(interaction, context) {
     manualChannels: true,
     manualChannelSelection: selection,
     manualManagedChannels: state.managedChannels,
-    onProgress
+    onProgress,
+    privateAccess: state.privateAccess
   })
   context.stateByUser.delete(getStateKey(interaction))
   return sendSetupChoiceResult(interaction, result)
@@ -190,20 +191,22 @@ async function createMissingSetupChannel(interaction, key, parent) {
   })
 }
 
-function updatePicker(interaction, selection, notice = null) {
-  return updateInteraction(interaction, createSetupChannelPickerPayload(selection, { notice }))
+function updatePicker(interaction, selection, notice = null, privateAccess = false) {
+  return updateInteraction(interaction, createSetupChannelPickerPayload(selection, { notice, privateAccess }))
 }
 
-function getPickerState(interaction, stateByUser) {
+function getPickerState(interaction, stateByUser, parsed = null) {
   const key = getStateKey(interaction)
   const existing = stateByUser.get(key)
   if (existing) {
     existing.managedChannels ??= {}
+    if (parsed?.accessSpecified) existing.privateAccess = parsed.privateAccess === true
     return existing
   }
   const created = {
     channels: createExistingSetupChannelSelection(interaction.guild),
     managedChannels: {},
+    privateAccess: parsed?.privateAccess === true,
     updatedAt: Date.now()
   }
   stateByUser.set(key, created)

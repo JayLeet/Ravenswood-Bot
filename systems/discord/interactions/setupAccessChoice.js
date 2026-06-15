@@ -18,6 +18,10 @@ const {
   parseSetupAccessChoiceCustomId
 } = require('../../../utils/setupAccessChoice')
 const {
+  createExistingSetupChannelSelection,
+  createSetupChannelPickerPayload
+} = require('../../../utils/setupChannelPicker')
+const {
   runSetup
 } = require('../../../utils/setupCommand')
 const {
@@ -64,6 +68,13 @@ function createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfi
 }
 
 async function runSetupAccessChoice(interaction, parsed, context) {
+  if (parsed.mode === 'manual') {
+    return updateInteraction(interaction, createSetupChannelPickerPayload(
+      createExistingSetupChannelSelection(interaction.guild),
+      { privateAccess: parsed.privateAccess }
+    ))
+  }
+
   const onProgress = createSetupProgressUpdater(interaction)
   await updateInteraction(interaction, createSetupProgressPayload())
   const result = await runSetup(interaction, context, { onProgress, privateAccess: parsed.privateAccess })
