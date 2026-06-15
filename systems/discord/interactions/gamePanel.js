@@ -9,7 +9,6 @@ const {
 } = require('../../../utils/discord/payloadSignature')
 const {
   editExistingPanel,
-  sendOptionalNotice,
   sendRequiredMessage
 } = require('../../../utils/discord/writeIntents')
 const { runRecoverableDiscordAction } = require('../../../utils/discord/recoverableAction')
@@ -19,7 +18,6 @@ const {
   deleteInteractionReply,
   deferPrivateReply,
   editInteractionReply,
-  extractMentions,
   replyPrivateSystem
 } = require('./feedback')
 const {
@@ -29,7 +27,11 @@ const {
   getGamePanelCommandName
 } = require('./gamePanelCommandNames')
 const {
+  sendGamePanelNotices
+} = require('./gamePanelNotices')
+const {
   clearTrackedPanelMessage,
+  fetchConfiguredPanelChannel,
   fetchTrackedPanelMessage,
   pruneMessageSignatures
 } = require('./panelMessageRefs')
@@ -50,18 +52,30 @@ function createGamePanelSystem({
   const runGamePanelAction = createGamePanelActionRunner({ gameLifecycle, gameManager })
   const messageSignatures = new Map()
   const subsystem = 'GamePanel'
+  const sendNotices = (interaction, serverConfig, result) =>
+    sendGamePanelNotices(interaction, serverConfig, result, { gameLifecycle, subsystem })
 
   async function postOrUpdateGamePanel(discordClient, guildId) {
     const serverConfig = serverConfigs.get(guildId)
     if (!isSetupComplete(serverConfig)) return null
 
-    const channel = await recoverDiscord('fetch-game-panel-channel', () => discordClient.channels.fetch(serverConfig.gameChannelId), {
+    const fetchedChannel = await fetchConfiguredPanelChannel({
+      action: 'fetch-game-panel-channel',
       channelId: serverConfig.gameChannelId,
+      client: discordClient,
+      configKeys: ['gameChannelId', 'gamePanelMessageId'],
+      context: {
+        guildId
+      },
       guildId,
+      saveServerConfigs,
+      serverConfig,
+      serverConfigs,
       subsystem
     })
+    const channel = fetchedChannel.channel
 
-    if (!channel?.isTextBased()) return null
+    if (!channel) return null
 
     const payload = createGamePanelPayload()
     const signature = createPayloadSignature(payload)
@@ -174,7 +188,7 @@ function createGamePanelSystem({
       await refreshStorytellerDashboard(interaction, services)
     }
 
-    await sendGamePanelNotices(interaction, serverConfig, result)
+    await sendNotices(interaction, serverConfig, result)
   }
 
   function getRuntimeState() {
@@ -205,46 +219,11 @@ function createGamePanelSystem({
     return updated
   }
 
-  async function sendGamePanelNotices(interaction, serverConfig, result) {
-    const deliveries = [
-      [serverConfig.storytellerChannelId, result.storytellerMessage, null],
-      [serverConfig.liveChannelId, result.liveMessage, result.publicEmbeds],
-      [serverConfig.spectatorChannelId, result.spectatorMessage, null]
-    ]
-
-    for (const [channelId, message, embeds] of deliveries) {
-      if (!channelId || (!message && !embeds?.length)) continue
-      await sendNotice(interaction, channelId, message, embeds)
-    }
-  }
-
-  async function sendNotice(interaction, channelId, message, embeds = null) {
-    const channel = await recoverDiscord('fetch-game-panel-notice-channel', () => interaction.client.channels.fetch(channelId), {
-      channelId,
-      guildId: interaction.guild.id,
-      subsystem
-    })
-    if (!channel?.isTextBased()) return null
-
-    const payload = embeds?.length
-      ? { embeds: embeds.map(createEmbedFromData) }
-      : { content: extractMentions(message), embeds: [createSystemEmbed('Notice', message, 0x3498db)] }
-    const sent = await sendOptionalNotice(channel, payload, {
-      context: { channelId, guildId: interaction.guild.id, subsystem },
-      failureMessage: 'Game panel side notice was not sent.',
-      logger: { recoverable: (action, err, context) => recoverDiscord(action, () => { throw err }, { ...context, subsystem }) },
-      trackFailureAction: 'track-game-panel-notice-message',
-      trackMessage: message => gameLifecycle.trackMessage(interaction.guild.id, message)
-    })
-    await logWriteFailure('send-game-panel-notice', sent, { channelId, guildId: interaction.guild.id, subsystem })
-    return sent.message
-  }
-
   return {
     getRuntimeState,
     handleGamePanelInteraction,
     postOrUpdateGamePanel,
-    sendGamePanelNotices
+    sendGamePanelNotices: sendNotices
   }
 }
 
@@ -267,8 +246,6 @@ function refreshStorytellerDashboard(interaction, services = {}) {
     { guildId: interaction.guild.id, subsystem: 'GamePanel' }
   )
 }
-
-function createEmbedFromData(data) { return createSystemEmbed(data.title, data.description, data.color || 0x3498db) }
 
 function schedulePanelFeedbackCleanup(interaction) {
   if (hasVisibleAdminInteractionDiagnostic(interaction)) return

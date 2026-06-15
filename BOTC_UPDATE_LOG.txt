@@ -1,20 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.4
+Current version: 1.1.5
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.4
+Version: 1.1.5
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Keeps `/setup-check` as a permission-only preflight so it does not create game roles before setup is confirmed.
-- Makes `/setup-channels` ask for public or private setup before manual channel selection.
+- Clears stale saved Game Panel and Player Grimoire panel channel references when Discord says those channels were deleted.
+- Stops deleted panel channel IDs from logging again on every restart.
 
 Latest medium update
 --------------------

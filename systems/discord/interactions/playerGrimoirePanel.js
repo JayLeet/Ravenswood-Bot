@@ -13,6 +13,7 @@ const {
 } = require('../../../utils/discord/recoverableAction')
 const {
   clearTrackedPanelMessage,
+  fetchConfiguredPanelChannel,
   fetchTrackedPanelMessage,
   pruneMessageSignatures
 } = require('./panelMessageRefs')
@@ -29,10 +30,21 @@ function createPlayerGrimoirePanelSystem({
     const serverConfig = serverConfigs.get(guildId)
     if (!isSetupComplete(serverConfig)) return null
 
-    const channel = await fetchTextChannel(discordClient, serverConfig.playerGrimoireChannelId, {
+    const fetchedChannel = await fetchConfiguredPanelChannel({
+      action: 'fetch-player-grimoire-channel',
+      channelId: serverConfig.playerGrimoireChannelId,
+      client: discordClient,
+      configKeys: ['playerGrimoireChannelId', 'playerGrimoirePanelMessageId'],
+      context: {
+        guildId
+      },
       guildId,
+      saveServerConfigs,
+      serverConfig,
+      serverConfigs,
       subsystem
     })
+    const channel = fetchedChannel.channel
 
     if (!channel) return null
 
@@ -95,15 +107,6 @@ function createPlayerGrimoirePanelSystem({
     getRuntimeState,
     postOrUpdatePlayerGrimoirePanel
   }
-}
-
-async function fetchTextChannel(client, channelId, context = {}) {
-  if (!channelId) return null
-  const channel = await recover('fetch-player-grimoire-channel', () => client.channels.fetch(channelId), {
-    ...context,
-    channelId
-  })
-  return channel?.isTextBased?.() ? channel : null
 }
 
 function recover(action, fn, context = {}) {
