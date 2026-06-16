@@ -204,7 +204,7 @@ function scheduleCommandFeedbackCleanup(interaction, payload) {
 
 function isTemporaryCommandFeedback(payload) {
   const title = payload?.embeds?.[0]?.data?.title || payload?.embeds?.[0]?.title
-  return ['Success', 'Command failed'].includes(title)
+  return title === 'Success'
 }
 
 function createFallbackPayload(payload, options = {}) {

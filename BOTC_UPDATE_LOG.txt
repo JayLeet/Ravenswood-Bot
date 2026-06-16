@@ -1,20 +1,21 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.6
+Current version: 1.1.7
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.6
+Version: 1.1.7
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Saves bot-created manual setup-channel IDs as soon as they are created, so `/delete` can clean them up even if the bot restarts before setup is confirmed.
-- Keeps interrupted `/setup-channels` cleanup tied to stored bot-managed IDs instead of scanning by channel name.
+- Keeps important private failure messages visible instead of deleting them a few seconds later.
+- Fixes public game creation after choosing Discord-only or Clocktower.live mode.
+- Stores bot-created manual setup-channel IDs directly while they are created, so `/delete` can clean them up after a restart.
 
 Latest medium update
 --------------------

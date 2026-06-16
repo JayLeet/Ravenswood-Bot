@@ -38,13 +38,15 @@ const {
   parseSetupChannelsCustomId
 } = require('../../../utils/setupChannelPicker')
 const {
-  collectManagedSetupIds
-} = require('../../../utils/setupDelete')
-const {
   acknowledgeInteraction,
   replyPrivateSystem,
   updateInteraction
 } = require('./feedback')
+const {
+  ensureManagedTracking,
+  trackPendingManagedCategory,
+  trackPendingManagedChannel
+} = require('./setupChannelsPersistence')
 const {
   createSetupProgressUpdater,
   runSetupAccessChoiceFlight
@@ -143,7 +145,7 @@ async function handleCreateMissing(interaction, parsed, context) {
     }
     channels[key] = created
     state.managedChannels[key] = created
-    savePendingManagedSetup(interaction, state, context)
+    trackPendingManagedChannel(interaction, state, context, created)
   }
 
   state.channels = channels
@@ -203,15 +205,16 @@ function getPickerState(interaction, stateByUser, parsed = null) {
   const key = getStateKey(interaction)
   const existing = stateByUser.get(key)
   if (existing) {
-    existing.managedCategories ??= {}
-    existing.managedChannels ??= {}
+    ensureManagedTracking(existing)
     if (parsed?.accessSpecified) existing.privateAccess = parsed.privateAccess === true
     return existing
   }
   const created = {
     channels: createExistingSetupChannelSelection(interaction.guild),
     managedCategories: {},
+    managedCategoryIds: [],
     managedChannels: {},
+    managedChannelIds: [],
     privateAccess: parsed?.privateAccess === true,
     updatedAt: Date.now()
   }
@@ -225,8 +228,10 @@ async function findNewChannelParent(interaction, channels, state, context) {
   if (selectedParentId) return { ok: true, parentId: selectedParentId }
 
   const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
-  savePendingManagedSetup(interaction, state, context)
   if (!result.ok) return { ok: false, parentId: null }
+  if (state.managedCategories.setupCategory?.id === result.category?.id) {
+    trackPendingManagedCategory(interaction, state, context, result.category)
+  }
   return { ok: true, parentId: result.category?.id || null }
 }
 
@@ -254,34 +259,6 @@ function pruneState(stateByUser, now = Date.now()) {
 
 function hasAdministrator(interaction) {
   return hasAdministratorOrGlobalCommandAccess(interaction)
-}
-
-function savePendingManagedSetup(interaction, state, context = {}) {
-  const guildId = interaction.guild?.id
-  if (!guildId || !context.serverConfigs?.set || !context.saveServerConfigs) return
-
-  const previous = context.serverConfigs.get(guildId) || {}
-  const tracked = collectManagedSetupIds({
-    managedCategories: state.managedCategories,
-    managedChannels: state.managedChannels
-  })
-  const next = {
-    ...previous,
-    setupManagedCategoryIds: uniqueIds([
-      ...(Array.isArray(previous.setupManagedCategoryIds) ? previous.setupManagedCategoryIds : []),
-      ...tracked.setupManagedCategoryIds
-    ]),
-    setupManagedChannelIds: uniqueIds([
-      ...(Array.isArray(previous.setupManagedChannelIds) ? previous.setupManagedChannelIds : []),
-      ...tracked.setupManagedChannelIds
-    ])
-  }
-  context.serverConfigs.set(guildId, next)
-  context.saveServerConfigs(context.serverConfigs)
-}
-
-function uniqueIds(ids) {
-  return [...new Set(ids.filter(Boolean).map(String))]
 }
 
 module.exports = {

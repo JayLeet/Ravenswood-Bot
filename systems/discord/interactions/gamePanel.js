@@ -215,7 +215,6 @@ function createGamePanelSystem({
         )
       ]
     })
-    schedulePanelFeedbackCleanup(interaction)
     return updated
   }
 
