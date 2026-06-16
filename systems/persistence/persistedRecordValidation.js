@@ -91,11 +91,17 @@ function validatePersistedServerConfig(config, { guildId, logger = null } = {}) 
     next[field] = null
   }
 
-  coerceArrayFields(next, ['botUpdateNoticeUserIds', 'setupManagedCategoryIds', 'setupManagedChannelIds'], { guildId, logger, recordType: 'server-config' })
+  coerceArrayFields(next, [
+    'botUpdateNoticeUserIds',
+    'setupBotCreatedCategoryIds',
+    'setupBotCreatedChannelIds',
+    'setupManagedCategoryIds',
+    'setupManagedChannelIds'
+  ], { guildId, logger, recordType: 'server-config' })
   next.botUpdateNoticeUserIds = [...new Set(next.botUpdateNoticeUserIds
     .map(id => String(id || '').trim())
     .filter(Boolean))]
-  coerceNullableStringFields(next, ['firstJoinSetupNoticeSentAt'], { guildId, logger, recordType: 'server-config' })
+  coerceNullableStringFields(next, ['firstJoinSetupNoticeSentAt', 'setupCleanupFallbackMode', 'setupCleanupFallbackStartedAt'], { guildId, logger, recordType: 'server-config' })
   coerceBooleanField(next, 'privateAccess', false, { guildId, logger, recordType: 'server-config' })
   if (next.lastBotUpdateNoticeVersion !== undefined && next.lastBotUpdateNoticeVersion !== null) {
     const version = String(next.lastBotUpdateNoticeVersion).trim()

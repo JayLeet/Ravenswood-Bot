@@ -32,7 +32,18 @@ async function getManualSetupChannels(interaction, gameManager = null, selection
   }
 
   const category = getManualSetupCategory(interaction.guild, channels)
-  const managedOptions = { managedChannels, managedCategories }
+  if (!category || !manualChannelsShareCategory(channels, category.id)) {
+    return {
+      ok: false,
+      message: 'Choose setup channels inside one category before continuing setup.'
+    }
+  }
+  const managedOptions = {
+    managedChannels,
+    managedCategories,
+    onManagedCategory: options.onManagedCategory,
+    onManagedChannel: options.onManagedChannel
+  }
   const postGameChannel = await ensurePostGameChannel(interaction.guild, category, gameManager, managedOptions)
   if (!postGameChannel) return { ok: false, message: 'I could not create the post-game reveal channel.' }
 
@@ -59,6 +70,12 @@ function getManualSetupCategory(guild, channels) {
   const channel = Object.values(channels).find(item => item?.parent || item?.parentId)
   if (!channel) return null
   return channel.parent || guild?.channels?.cache?.get?.(channel.parentId) || null
+}
+
+function manualChannelsShareCategory(channels, categoryId) {
+  return Object.values(channels).every(channel =>
+    String(channel?.parentId || channel?.parent?.id || '') === String(categoryId)
+  )
 }
 
 module.exports = {

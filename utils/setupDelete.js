@@ -17,6 +17,12 @@ const {
 const {
   logSetupRecoverable
 } = require('./setupLogging')
+const {
+  clearSetupCleanupFallback
+} = require('./setupCleanupFallback')
+const {
+  fetchFallbackBotCreatedChannelIds
+} = require('./setupDeleteAuditLog')
 
 const SETUP_DELETE_CUSTOM_ID = 'botc:setup-delete'
 const SETUP_CONFIG_CHANNEL_KEYS = Object.freeze([
@@ -88,7 +94,11 @@ async function deleteBotManagedSetup(guild, serverConfig = {}) {
   const refreshed = await refreshGuildChannels(guild)
   if (!refreshed.ok) return createSetupDeleteResult({ failed: 1, refreshFailed: true })
 
-  const plan = createSetupDeletePlan(guild, serverConfig, { channels: refreshed.channels })
+  const fallbackBotCreatedIds = await fetchFallbackBotCreatedChannelIds(guild, serverConfig)
+  const plan = createSetupDeletePlan(guild, serverConfig, {
+    channels: refreshed.channels,
+    fallbackBotCreatedIds
+  })
   const result = createSetupDeleteResult({
     plannedChannels: plan.channels.length,
     plannedCategories: plan.categories.length
@@ -127,18 +137,24 @@ function savePostDeleteConfig(guildId, previousConfig, context = {}) {
 }
 
 function createPostDeleteServerConfig(config = {}) {
-  const next = { ...config }
+  const next = clearSetupCleanupFallback(config)
   for (const key of SETUP_CONFIG_CHANNEL_KEYS) delete next[key]
   delete next.setupManagedCategoryIds
   delete next.setupManagedChannelIds
+  delete next.setupBotCreatedCategoryIds
+  delete next.setupBotCreatedChannelIds
   next.privateAccess = false
   return next
 }
 
 function collectManagedSetupIds(setupResult = {}) {
+  const categoryIds = uniqueIds(toObjectValues(setupResult.managedCategories))
+  const channelIds = uniqueIds(toObjectValues(setupResult.managedChannels))
   return {
-    setupManagedCategoryIds: uniqueIds(toObjectValues(setupResult.managedCategories)),
-    setupManagedChannelIds: uniqueIds(toObjectValues(setupResult.managedChannels))
+    setupBotCreatedCategoryIds: categoryIds,
+    setupBotCreatedChannelIds: channelIds,
+    setupManagedCategoryIds: categoryIds,
+    setupManagedChannelIds: channelIds
   }
 }
 

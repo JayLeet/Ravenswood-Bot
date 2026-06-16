@@ -37,6 +37,8 @@ function savePendingManagedSetup(interaction, state, context = {}) {
   const previous = context.serverConfigs.get(guildId) || {}
   const next = {
     ...previous,
+    setupBotCreatedCategoryIds: mergeSetupIds(previous, 'setupBotCreatedCategoryIds', categoryIds),
+    setupBotCreatedChannelIds: mergeSetupIds(previous, 'setupBotCreatedChannelIds', channelIds),
     setupManagedCategoryIds: mergeSetupIds(previous, 'setupManagedCategoryIds', categoryIds),
     setupManagedChannelIds: mergeSetupIds(previous, 'setupManagedChannelIds', channelIds)
   }

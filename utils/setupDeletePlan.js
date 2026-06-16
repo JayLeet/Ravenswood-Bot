@@ -1,20 +1,51 @@
 const {
   ChannelType
 } = require('discord.js')
+const {
+  shouldFallbackDeleteCategory,
+  shouldFallbackDeleteChannel
+} = require('./setupCleanupFallback')
+
 function createSetupDeletePlan(guild, serverConfig = {}, options = {}) {
   const channelsSource = getGuildChannels(guild, options.channels)
-  const trackedChannelIds = uniqueIds(toStringArray(serverConfig.setupManagedChannelIds))
-  const trackedCategoryIds = uniqueIds(toStringArray(serverConfig.setupManagedCategoryIds))
+  const trackedChannelIds = uniqueIds(toStringArray(serverConfig.setupBotCreatedChannelIds))
+  const trackedCategoryIds = uniqueIds(toStringArray(serverConfig.setupBotCreatedCategoryIds))
   const channels = trackedChannelIds
     .map(channelId => getGuildChannelById(channelsSource, channelId))
     .filter(shouldDeleteSetupChannel)
   const categories = trackedCategoryIds
     .map(channelId => getGuildChannelById(channelsSource, channelId))
     .filter(shouldDeleteSetupCategory)
+  addFallbackSetupItems(channels, categories, channelsSource, serverConfig, options)
 
   return {
     categories,
     channels
+  }
+}
+
+function addFallbackSetupItems(channels, categories, channelsSource, serverConfig, options = {}) {
+  const fallbackBotCreatedIds = normalizeIdSet(options.fallbackBotCreatedIds)
+  const categoryIds = new Set(categories.map(category => String(category.id)))
+  const channelIds = new Set(channels.map(channel => String(channel.id)))
+
+  for (const category of channelsSource.filter(channel => channel?.type === ChannelType.GuildCategory)) {
+    if (!shouldFallbackDeleteCategory(category, serverConfig)) continue
+    if (!fallbackBotCreatedIds.has(String(category.id))) continue
+    if (!categoryIds.has(String(category.id))) {
+      categories.push(category)
+      categoryIds.add(String(category.id))
+    }
+  }
+
+  for (const channel of channelsSource.filter(shouldDeleteSetupChannel)) {
+    const parent = getGuildChannelById(channelsSource, channel.parentId || channel.parent?.id)
+    if (!shouldFallbackDeleteChannel(channel, parent, serverConfig)) continue
+    if (!fallbackBotCreatedIds.has(String(channel.id))) continue
+    if (!channelIds.has(String(channel.id))) {
+      channels.push(channel)
+      channelIds.add(String(channel.id))
+    }
   }
 }
 
@@ -41,6 +72,13 @@ function toStringArray(value) {
 
 function uniqueIds(ids) {
   return [...new Set(ids.filter(Boolean).map(String))]
+}
+
+function normalizeIdSet(ids) {
+  if (!ids) return new Set()
+  if (ids instanceof Set) return new Set([...ids].filter(Boolean).map(String))
+  if (Array.isArray(ids)) return new Set(ids.filter(Boolean).map(String))
+  return new Set()
 }
 
 function getGuildChannelById(channels, channelId) {

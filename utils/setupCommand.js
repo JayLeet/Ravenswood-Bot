@@ -40,6 +40,9 @@ const {
   trackPendingManagedCategory,
   trackPendingManagedChannel
 } = require('./setupPendingManagedIds')
+const {
+  beginSetupCleanupFallback
+} = require('./setupCleanupFallback')
 
 async function runSetup(interaction, ctx, options = {}) {
   if (!hasAdministrator(interaction)) {
@@ -76,13 +79,18 @@ async function runSetup(interaction, ctx, options = {}) {
 
   const setupResult = setupOptions.manualChannels
     ? await getManualSetupChannels(interaction, ctx.gameManager, setupOptions.manualChannelSelection, setupOptions)
-    : await createAutoSetupChannels(interaction.guild, ctx.gameManager, setupOptions)
+    : await runAutoSetupChannels(interaction, ctx, setupOptions)
   setupResult.privateAccess = !!setupOptions.privateAccess
 
   if (!setupResult.ok) return { ok: false, error: { message: setupResult.message } }
   if (options.bypassUnsafeRoles) setupResult.bypassUnsafeRoles = true
   await notifySetupProgress(options, 'channels')
   return saveSetupChannels(interaction, ctx, setupResult, options)
+}
+
+function runAutoSetupChannels(interaction, ctx, setupOptions) {
+  beginSetupCleanupFallback(interaction, ctx)
+  return createAutoSetupChannels(interaction.guild, ctx.gameManager, setupOptions)
 }
 
 async function preflightUnsafeSetupRoles(guild, gameManager, options = {}) {
@@ -242,6 +250,8 @@ function saveServerConfig(interaction, ctx, channels, panels, setupResult = {}) 
     playerGrimoirePanelMessageId: panels.playerGrimoirePanelMessage.id,
     postGameChannelId: channels.postGameChannel.id,
     privateAccess: !!setupResult.privateAccess,
+    setupBotCreatedCategoryIds: mergeSetupIds(previousConfig, 'setupBotCreatedCategoryIds', managedSetup.setupBotCreatedCategoryIds),
+    setupBotCreatedChannelIds: mergeSetupIds(previousConfig, 'setupBotCreatedChannelIds', managedSetup.setupBotCreatedChannelIds),
     setupManagedCategoryIds: mergeSetupIds(previousConfig, 'setupManagedCategoryIds', managedSetup.setupManagedCategoryIds),
     setupManagedChannelIds: mergeSetupIds(previousConfig, 'setupManagedChannelIds', managedSetup.setupManagedChannelIds),
     storytellerChannelId: channels.storytellerChannel.id,

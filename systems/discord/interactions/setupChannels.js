@@ -26,9 +26,6 @@ const {
   createSetupProgressPayload
 } = require('../../../utils/setupProgress')
 const {
-  AUTO_SETUP_CATEGORY_NAME
-} = require('../../../utils/botcChannelNames')
-const {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
@@ -50,6 +47,9 @@ const {
   trackPendingManagedCategory,
   trackPendingManagedChannel
 } = require('./setupChannelsPersistence')
+const {
+  getSelectionCategoryNotice
+} = require('./setupChannelsCategoryGuard')
 const {
   createSetupProgressUpdater,
   runSetupAccessChoiceFlight
@@ -123,13 +123,15 @@ async function handleChannelSelect(interaction, parsed, stateByUser) {
 
   state.channels[parsed.key] = selected
   state.updatedAt = Date.now()
-  return updatePicker(interaction, state.channels, null, state.privateAccess)
+  return updatePicker(interaction, state.channels, getSelectionCategoryNotice(state.channels), state.privateAccess)
 }
 
 async function handleCreateMissing(interaction, parsed, context) {
   const state = getPickerState(interaction, context.stateByUser, parsed)
   let channels = normalizeSetupChannelSelection(state.channels)
-  const missingBeforeFill = new Set(getMissingSetupChannelKeys(channels))
+  const categoryNotice = getSelectionCategoryNotice(channels)
+  if (categoryNotice) return updatePicker(interaction, channels, categoryNotice, state.privateAccess)
+
   const parentResult = await findNewChannelParent(interaction, channels, state, context)
   if (!parentResult.ok) {
     return updatePicker(interaction, channels, {
@@ -138,8 +140,6 @@ async function handleCreateMissing(interaction, parsed, context) {
     }, state.privateAccess)
   }
   channels = fillMissingSetupChannelSelection(channels, interaction.guild, parentResult.parentId)
-  trackReusableSetupSelection(interaction, state, context, channels, parentResult.parentId)
-  trackReusedMissingChannels(interaction, state, context, channels, missingBeforeFill)
 
   for (const key of getMissingSetupChannelKeys(channels)) {
     const created = await createMissingSetupChannel(interaction, key, parentResult.parentId)
@@ -172,6 +172,8 @@ async function handleConfirm(interaction, context) {
       message: `Choose or create: ${missing.map(key => SETUP_CHANNEL_PICKER_DETAILS[key].label).join(', ')}.`
     }, state.privateAccess)
   }
+  const categoryNotice = getSelectionCategoryNotice(selection)
+  if (categoryNotice) return updatePicker(interaction, selection, categoryNotice, state.privateAccess)
 
   const onProgress = createSetupProgressUpdater(interaction)
   await updateInteraction(interaction, createSetupProgressPayload())
@@ -235,32 +237,10 @@ async function findNewChannelParent(interaction, channels, state, context) {
 
   const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
   if (!result.ok) return { ok: false, parentId: null }
-  trackPendingManagedCategory(interaction, state, context, result.category)
+  if (String(state.managedCategories.setupCategory?.id || '') === String(result.category?.id || '')) {
+    trackPendingManagedCategory(interaction, state, context, result.category)
+  }
   return { ok: true, parentId: result.category?.id || null }
-}
-
-function trackReusedMissingChannels(interaction, state, context, channels, missingBeforeFill) {
-  for (const key of missingBeforeFill) {
-    if (channels[key]) trackPendingManagedChannel(interaction, state, context, channels[key])
-  }
-}
-
-function trackReusableSetupSelection(interaction, state, context, channels, parentId) {
-  const category = interaction.guild?.channels?.cache?.get?.(parentId)
-  if (category?.name !== AUTO_SETUP_CATEGORY_NAME) return
-
-  trackPendingManagedCategory(interaction, state, context, category)
-  for (const key of SETUP_CHANNEL_PICKER_KEYS) {
-    const channel = channels[key]
-    if (!isReusableSetupChannel(channel, key, parentId)) continue
-    trackPendingManagedChannel(interaction, state, context, channel)
-  }
-}
-
-function isReusableSetupChannel(channel, key, parentId) {
-  if (!channel?.id) return false
-  if (channel.name !== SETUP_CHANNEL_PICKER_DETAILS[key].createConfig.name) return false
-  return String(channel.parentId || channel.parent?.id || '') === String(parentId)
 }
 
 function resolveSelectedChannel(interaction) {
