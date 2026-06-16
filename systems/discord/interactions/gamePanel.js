@@ -15,7 +15,6 @@ const { runRecoverableDiscordAction } = require('../../../utils/discord/recovera
 const {
   acknowledgeInteraction,
   createSystemEmbed,
-  deleteInteractionReply,
   deferPrivateReply,
   editInteractionReply,
   replyPrivateSystem
@@ -36,8 +35,6 @@ const {
   pruneMessageSignatures
 } = require('./panelMessageRefs')
 const { hasVisibleAdminInteractionDiagnostic } = require('./adminDiagnostics')
-
-const PANEL_FEEDBACK_DELETE_DELAY_MS = 3000
 
 function createGamePanelSystem({
   serverConfigs,
@@ -177,7 +174,6 @@ function createGamePanelSystem({
         ],
         components: result.components || []
       })
-      if (!result.embeds) schedulePanelFeedbackCleanup(interaction)
     }
 
     if (result.cleanupSetupChannels) {
@@ -246,11 +242,6 @@ function refreshStorytellerDashboard(interaction, services = {}) {
   )
 }
 
-function schedulePanelFeedbackCleanup(interaction) {
-  if (hasVisibleAdminInteractionDiagnostic(interaction)) return
-  setTimeout(() => deleteInteractionReply(interaction).catch(() => null), PANEL_FEEDBACK_DELETE_DELAY_MS)
-}
-
 function logWriteFailure(action, result, context) {
   if (result?.ok || !result?.error) return null
   return recoverDiscord(action, () => {
@@ -267,6 +258,6 @@ function recoverDiscord(action, fn, context = {}) {
 }
 
 module.exports = {
-  PANEL_FEEDBACK_DELETE_DELAY_MS, acknowledgeGamePanelInteraction, createGamePanelSystem,
+  acknowledgeGamePanelInteraction, createGamePanelSystem,
   pruneMessageSignatures, refreshStorytellerDashboard, shouldUpdateExistingGamePanelReply
 }

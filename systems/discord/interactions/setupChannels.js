@@ -26,6 +26,9 @@ const {
   createSetupProgressPayload
 } = require('../../../utils/setupProgress')
 const {
+  AUTO_SETUP_CATEGORY_NAME
+} = require('../../../utils/botcChannelNames')
+const {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
@@ -126,6 +129,7 @@ async function handleChannelSelect(interaction, parsed, stateByUser) {
 async function handleCreateMissing(interaction, parsed, context) {
   const state = getPickerState(interaction, context.stateByUser, parsed)
   let channels = normalizeSetupChannelSelection(state.channels)
+  const missingBeforeFill = new Set(getMissingSetupChannelKeys(channels))
   const parentResult = await findNewChannelParent(interaction, channels, state, context)
   if (!parentResult.ok) {
     return updatePicker(interaction, channels, {
@@ -134,6 +138,8 @@ async function handleCreateMissing(interaction, parsed, context) {
     }, state.privateAccess)
   }
   channels = fillMissingSetupChannelSelection(channels, interaction.guild, parentResult.parentId)
+  trackReusableSetupSelection(interaction, state, context, channels, parentResult.parentId)
+  trackReusedMissingChannels(interaction, state, context, channels, missingBeforeFill)
 
   for (const key of getMissingSetupChannelKeys(channels)) {
     const created = await createMissingSetupChannel(interaction, key, parentResult.parentId)
@@ -229,10 +235,32 @@ async function findNewChannelParent(interaction, channels, state, context) {
 
   const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
   if (!result.ok) return { ok: false, parentId: null }
-  if (state.managedCategories.setupCategory?.id === result.category?.id) {
-    trackPendingManagedCategory(interaction, state, context, result.category)
-  }
+  trackPendingManagedCategory(interaction, state, context, result.category)
   return { ok: true, parentId: result.category?.id || null }
+}
+
+function trackReusedMissingChannels(interaction, state, context, channels, missingBeforeFill) {
+  for (const key of missingBeforeFill) {
+    if (channels[key]) trackPendingManagedChannel(interaction, state, context, channels[key])
+  }
+}
+
+function trackReusableSetupSelection(interaction, state, context, channels, parentId) {
+  const category = interaction.guild?.channels?.cache?.get?.(parentId)
+  if (category?.name !== AUTO_SETUP_CATEGORY_NAME) return
+
+  trackPendingManagedCategory(interaction, state, context, category)
+  for (const key of SETUP_CHANNEL_PICKER_KEYS) {
+    const channel = channels[key]
+    if (!isReusableSetupChannel(channel, key, parentId)) continue
+    trackPendingManagedChannel(interaction, state, context, channel)
+  }
+}
+
+function isReusableSetupChannel(channel, key, parentId) {
+  if (!channel?.id) return false
+  if (channel.name !== SETUP_CHANNEL_PICKER_DETAILS[key].createConfig.name) return false
+  return String(channel.parentId || channel.parent?.id || '') === String(parentId)
 }
 
 function resolveSelectedChannel(interaction) {

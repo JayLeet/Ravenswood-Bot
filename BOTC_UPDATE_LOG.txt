@@ -1,21 +1,21 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.7
+Current version: 1.1.8
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.7
+Version: 1.1.8
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Keeps important private failure messages visible instead of deleting them a few seconds later.
-- Fixes public game creation after choosing Discord-only or Clocktower.live mode.
-- Stores bot-created manual setup-channel IDs directly while they are created, so `/delete` can clean them up after a restart.
+- Keeps normal Game Panel and command success/failure replies visible instead of deleting them a few seconds later.
+- Lets `/setup-channels` adopt exact BOTC setup channels already in Ravenswood Bluff when `Create missing channels` is pressed, so stale interrupted setup channels can be deleted by stored ID.
+- Preserves pending manual setup cleanup IDs when setup later saves the final server config.
 
 Latest medium update
 --------------------

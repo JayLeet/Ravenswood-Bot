@@ -34,6 +34,7 @@ const {
 } = require('./setupUnsafeRoles')
 const { logSetupRecoverable } = require('./setupLogging')
 const { hasAdministratorOrGlobalCommandAccess } = require('./commandAccess')
+const { mergeSetupIds } = require('./setupManagedIds')
 
 const SETUP_CHANNEL_OPTION_NAMES = Object.freeze({ gameChannel: 'game-channel', liveChannel: 'live-channel', spectatorChannel: 'spectator-channel', storytellerChannel: 'storyteller-channel' })
 
@@ -277,8 +278,8 @@ function saveServerConfig(interaction, ctx, channels, panels, setupResult = {}) 
     playerGrimoirePanelMessageId: panels.playerGrimoirePanelMessage.id,
     postGameChannelId: channels.postGameChannel.id,
     privateAccess: !!setupResult.privateAccess,
-    setupManagedCategoryIds: managedSetup.setupManagedCategoryIds,
-    setupManagedChannelIds: managedSetup.setupManagedChannelIds,
+    setupManagedCategoryIds: mergeSetupIds(previousConfig, 'setupManagedCategoryIds', managedSetup.setupManagedCategoryIds),
+    setupManagedChannelIds: mergeSetupIds(previousConfig, 'setupManagedChannelIds', managedSetup.setupManagedChannelIds),
     storytellerChannelId: channels.storytellerChannel.id,
     spectatorChannelId: channels.spectatorChannel.id,
     waitingRoomVoiceChannelId: setupResult.sharedVoiceChannels?.waitingRoomVoiceChannel?.id || null

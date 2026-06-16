@@ -32,7 +32,6 @@ const COLORS = {
   info: 0x3498db,
   end: 0xf1c40f
 }
-const COMMAND_FEEDBACK_DELETE_DELAY_MS = 3000
 const log = createBotLogger({ subsystem: 'CommandWrapper' })
 
 function wrapCommand(handler, options = {}) {
@@ -185,26 +184,12 @@ async function sendFailure(interaction, options, message, suggestion = null) {
 
 async function sendPrimaryResponse(interaction, options, payload) {
   try {
-    const response = await interaction.editReply(payload)
-    scheduleCommandFeedbackCleanup(interaction, payload)
-    return response
+    return await interaction.editReply(payload)
   } catch (err) {
     if (!isIgnorableInteractionResponseError(err)) throw err
 
-    const response = await safeFollowUp(interaction, createFallbackPayload(payload, options))
-    scheduleCommandFeedbackCleanup(interaction, payload)
-    return response
+    return safeFollowUp(interaction, createFallbackPayload(payload, options))
   }
-}
-
-function scheduleCommandFeedbackCleanup(interaction, payload) {
-  if (!isTemporaryCommandFeedback(payload)) return
-  setTimeout(() => interaction.deleteReply?.().catch(() => null), COMMAND_FEEDBACK_DELETE_DELAY_MS)
-}
-
-function isTemporaryCommandFeedback(payload) {
-  const title = payload?.embeds?.[0]?.data?.title || payload?.embeds?.[0]?.title
-  return title === 'Success'
 }
 
 function createFallbackPayload(payload, options = {}) {
