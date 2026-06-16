@@ -182,6 +182,7 @@ async function findOrCreateSetupVoiceChannel(guild, category, config, overwrites
     permissionOverwrites: overwrites
   }).then(channel => {
     if (options.managedChannels && config.key) options.managedChannels[config.key] = channel
+    options.onManagedChannel?.(channel, config.key)
     return channel
   }).catch(err => {
     log.recoverable('create-setup-shared-voice-channel', err, { guildId: guild.id, name: config.name, parentId: category?.id })

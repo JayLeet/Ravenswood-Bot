@@ -82,6 +82,7 @@ async function findOrCreateReservedNightCategory(guild, options = {}) {
     reason: 'BOTC reserved cottage category'
   }).then(category => {
     if (options.managedCategories) options.managedCategories.reservedNightAreaCategory = category
+    options.onManagedCategory?.(category, 'reservedNightAreaCategory')
     return category
   }).catch(err => {
     log.recoverable('create-reserved-night-category', err, { guildId: guild.id })
@@ -147,6 +148,7 @@ async function ensureReservedVoiceChannel(guild, category, slot, options = {}) {
     permissionOverwrites: overwrites
   }).then(channel => {
     if (options.managedChannels) options.managedChannels[`reservedNightVoice${slot}`] = channel
+    options.onManagedChannel?.(channel, `reservedNightVoice${slot}`)
     return channel
   }).catch(err => {
     log.recoverable('create-reserved-night-voice', err, {

@@ -1,20 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.9
+Current version: 1.1.10
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.9
+Version: 1.1.10
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Uses Discord's refreshed channel list when `/delete` removes stored BOTC setup channels, so cleanup still works after restart even when the local channel cache is stale.
-- Keeps the existing stored-ID safety rule: `/delete` still only removes channels and categories tracked as bot-managed setup items.
+- Saves normal `/setup` cleanup targets as soon as the bot creates them, so `/delete` can recover after a restart during setup.
+- Keeps the stored-ID safety rule: `/delete` still only removes channels and categories tracked as bot-managed setup items.
 
 Latest medium update
 --------------------

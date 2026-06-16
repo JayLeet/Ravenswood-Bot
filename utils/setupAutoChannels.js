@@ -49,6 +49,10 @@ const {
   createCategoryRoleAccessFailureMessage,
   createTextChannelFailureMessage
 } = require('./setupAutoChannelFailureMessages')
+const {
+  hasAllSetupChannelOptions,
+  hasAnySetupChannelOption
+} = require('./setupChannelOptions')
 
 const SETUP_TEXT_CHANNEL_ORDER = Object.freeze(
   ['gameChannel', 'playerGrimoireChannel', 'storytellerChannel', 'liveChannel', 'postGameChannel', 'spectatorChannel']
@@ -99,19 +103,16 @@ const AUTO_SETUP_GAME_LOG_CHANNEL = Object.freeze({
   lockedPanel: true
 })
 
-function hasAnySetupChannelOption(channels) {
-  return Object.values(channels).some(Boolean)
-}
-
-function hasAllSetupChannelOptions(channels) {
-  return Object.values(channels).every(Boolean)
-}
-
 async function createAutoSetupChannels(guild, gameManager, options = {}) {
   const previousConfig = options.previousConfig || {}
-  const managedChannels = {}
-  const managedCategories = {}
-  const managedOptions = { managedChannels, managedCategories }
+  const managedChannels = options.managedChannels || {}
+  const managedCategories = options.managedCategories || {}
+  const managedOptions = {
+    managedChannels,
+    managedCategories,
+    onManagedCategory: options.onManagedCategory,
+    onManagedChannel: options.onManagedChannel
+  }
   const reset = await resetAutoSetupCategories(guild, {
     preserveChannelIds: [previousConfig.botUpdateChannelId].filter(Boolean)
   })
@@ -167,7 +168,10 @@ async function createAutoSetupChannels(guild, gameManager, options = {}) {
   }
 
   const botUpdateChannel = botUpdateChannelResult.channel
-  if (botUpdateChannelResult.source === 'created') managedChannels.botUpdateChannel = botUpdateChannel
+  if (botUpdateChannelResult.source === 'created') {
+    managedChannels.botUpdateChannel = botUpdateChannel
+    options.onManagedChannel?.(botUpdateChannel, 'botUpdateChannel')
+  }
   const channels = {}
 
   for (const config of [...Object.values(AUTO_SETUP_CHANNELS), AUTO_SETUP_GAME_LOG_CHANNEL]) {
@@ -261,6 +265,7 @@ async function findOrCreateTextChannel(guild, category, config, gameRoles, optio
     permissionOverwrites: overwrites
   }).then(channel => {
     if (options.managedChannels && config.key) options.managedChannels[config.key] = channel
+    options.onManagedChannel?.(channel, config.key)
     return channel
   }).catch(err => logSetupRecoverable('create-auto-setup-text-channel', err, { categoryId: category?.id, guildId: guild.id, name: config.name }))
 }

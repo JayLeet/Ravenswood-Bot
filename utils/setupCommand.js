@@ -8,12 +8,12 @@ const { queuedMessageDelete } = require('./discord/messageActions')
 const { getCleanupChannels } = require('./channelCleanup')
 const {
   createAutoSetupChannels,
-  ensureGameLogChannel,
-  ensurePlayerGrimoireChannel,
-  ensurePostGameChannel,
   ensureSetupRoles,
-  ensureSetupVoiceChannels
 } = require('./setupAutoChannels')
+const {
+  SETUP_CHANNEL_OPTION_NAMES,
+  getManualSetupChannels
+} = require('./setupManualChannels')
 const {
   findExistingAutoSetupCategory
 } = require('./setupAutoCategory')
@@ -35,8 +35,11 @@ const {
 const { logSetupRecoverable } = require('./setupLogging')
 const { hasAdministratorOrGlobalCommandAccess } = require('./commandAccess')
 const { mergeSetupIds } = require('./setupManagedIds')
-
-const SETUP_CHANNEL_OPTION_NAMES = Object.freeze({ gameChannel: 'game-channel', liveChannel: 'live-channel', spectatorChannel: 'spectator-channel', storytellerChannel: 'storyteller-channel' })
+const {
+  ensureManagedTracking,
+  trackPendingManagedCategory,
+  trackPendingManagedChannel
+} = require('./setupPendingManagedIds')
 
 async function runSetup(interaction, ctx, options = {}) {
   if (!hasAdministrator(interaction)) {
@@ -61,7 +64,15 @@ async function runSetup(interaction, ctx, options = {}) {
 
   await notifySetupProgress(options, 'safety')
   const previousConfig = ctx.serverConfigs.get(interaction.guild.id)
-  const setupOptions = { ...options, previousConfig }
+  const pendingManaged = ensureManagedTracking({})
+  const setupOptions = {
+    ...options,
+    previousConfig,
+    managedCategories: pendingManaged.managedCategories,
+    managedChannels: pendingManaged.managedChannels,
+    onManagedCategory: category => trackPendingManagedCategory(interaction, pendingManaged, ctx, category),
+    onManagedChannel: channel => trackPendingManagedChannel(interaction, pendingManaged, ctx, channel)
+  }
 
   const setupResult = setupOptions.manualChannels
     ? await getManualSetupChannels(interaction, ctx.gameManager, setupOptions.manualChannelSelection, setupOptions)
@@ -85,53 +96,6 @@ async function preflightUnsafeSetupRoles(guild, gameManager, options = {}) {
     ok: true,
     ...createUnsafeSetupRolePayload(unsafe, { privateAccess: !!options.privateAccess })
   }
-}
-
-async function getManualSetupChannels(interaction, gameManager = null, selection = null, options = {}) {
-  const managedChannels = { ...(options.manualManagedChannels || {}) }
-  const managedCategories = {}
-  const channels = selection || {
-    gameChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.gameChannel),
-    liveChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.liveChannel),
-    spectatorChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.spectatorChannel),
-    storytellerChannel: interaction.options?.getChannel?.(SETUP_CHANNEL_OPTION_NAMES.storytellerChannel)
-  }
-
-  if (Object.values(channels).some(channel => !channel)) {
-    return {
-      ok: false,
-      message: 'Choose all four setup channels in the setup-channel picker, or use `/setup` to create the Ravenswood Bluff setup automatically.'
-    }
-  }
-
-  const category = getManualSetupCategory(interaction.guild, channels)
-  const managedOptions = { managedChannels, managedCategories }
-  const postGameChannel = await ensurePostGameChannel(interaction.guild, category, gameManager, managedOptions)
-  if (!postGameChannel) return { ok: false, message: 'I could not create the post-game reveal channel.' }
-
-  const gameLogChannel = await ensureGameLogChannel(interaction.guild, category, gameManager, managedOptions)
-  if (!gameLogChannel) return { ok: false, message: 'I could not create the game-log archive channel.' }
-
-  const playerGrimoireChannel = await ensurePlayerGrimoireChannel(interaction.guild, category, gameManager, managedOptions)
-  if (!playerGrimoireChannel) return { ok: false, message: 'I could not create the player grimoire channel.' }
-
-  const sharedVoice = await ensureSetupVoiceChannels(interaction.guild, category, gameManager, managedOptions)
-  if (!sharedVoice.ok) return sharedVoice
-
-  return {
-    ok: true,
-    channels: { ...channels, gameLogChannel, playerGrimoireChannel, postGameChannel },
-    managedCategories,
-    managedChannels,
-    sharedVoiceChannels: sharedVoice.channels,
-    autoCreated: false
-  }
-}
-
-function getManualSetupCategory(guild, channels) {
-  const channel = Object.values(channels).find(item => item?.parent || item?.parentId)
-  if (!channel) return null
-  return channel.parent || guild?.channels?.cache?.get?.(channel.parentId) || null
 }
 
 async function saveSetupChannels(interaction, ctx, setupResult, options = {}) {

@@ -18,6 +18,7 @@ async function findOrCreateAutoSetupCategory(guild, options = {}) {
   })
     .then(category => {
       if (options.managedCategories) options.managedCategories.setupCategory = category
+      options.onManagedCategory?.(category, 'setupCategory')
       return { ok: true, category }
     })
     .catch(err => {
