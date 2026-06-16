@@ -1,21 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.8
+Current version: 1.1.9
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.8
+Version: 1.1.9
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Keeps normal Game Panel and command success/failure replies visible instead of deleting them a few seconds later.
-- Lets `/setup-channels` adopt exact BOTC setup channels already in Ravenswood Bluff when `Create missing channels` is pressed, so stale interrupted setup channels can be deleted by stored ID.
-- Preserves pending manual setup cleanup IDs when setup later saves the final server config.
+- Uses Discord's refreshed channel list when `/delete` removes stored BOTC setup channels, so cleanup still works after restart even when the local channel cache is stale.
+- Keeps the existing stored-ID safety rule: `/delete` still only removes channels and categories tracked as bot-managed setup items.
 
 Latest medium update
 --------------------

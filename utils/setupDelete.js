@@ -86,9 +86,9 @@ async function executeSetupDelete(interaction, context = {}) {
 
 async function deleteBotManagedSetup(guild, serverConfig = {}) {
   const refreshed = await refreshGuildChannels(guild)
-  if (!refreshed) return createSetupDeleteResult({ failed: 1, refreshFailed: true })
+  if (!refreshed.ok) return createSetupDeleteResult({ failed: 1, refreshFailed: true })
 
-  const plan = createSetupDeletePlan(guild, serverConfig)
+  const plan = createSetupDeletePlan(guild, serverConfig, { channels: refreshed.channels })
   const result = createSetupDeleteResult({
     plannedChannels: plan.channels.length,
     plannedCategories: plan.categories.length
@@ -106,7 +106,7 @@ async function deleteBotManagedSetup(guild, serverConfig = {}) {
   }
 
   for (const category of plan.categories) {
-    if (hasRemainingChildren(guild, category, deletedChannelIds)) {
+    if (hasRemainingChildren(guild, category, deletedChannelIds, refreshed.channels)) {
       result.preservedCategories += 1
       continue
     }
@@ -193,10 +193,13 @@ function hasActiveGame(interaction, gameLifecycle) {
 }
 
 async function refreshGuildChannels(guild) {
-  if (!guild?.channels?.fetch) return false
+  if (!guild?.channels?.fetch) return { ok: false, channels: null }
   return guild.channels.fetch()
-    .then(() => true)
-    .catch(err => logSetupRecoverable('fetch-setup-delete-channels', err, { guildId: guild?.id }, false))
+    .then(channels => ({ ok: true, channels }))
+    .catch(err => {
+      logSetupRecoverable('fetch-setup-delete-channels', err, { guildId: guild?.id }, false)
+      return { ok: false, channels: null }
+    })
 }
 
 function deleteChannel(channel, reason) {
