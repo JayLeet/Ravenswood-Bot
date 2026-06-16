@@ -1,20 +1,20 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.5
+Current version: 1.1.6
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.5
+Version: 1.1.6
 Type: patch
 Date: 2026-06-16
 Requires /setup: no
 Changes:
-- Clears stale saved Game Panel and Player Grimoire panel channel references when Discord says those channels were deleted.
-- Stops deleted panel channel IDs from logging again on every restart.
+- Saves bot-created manual setup-channel IDs as soon as they are created, so `/delete` can clean them up even if the bot restarts before setup is confirmed.
+- Keeps interrupted `/setup-channels` cleanup tied to stored bot-managed IDs instead of scanning by channel name.
 
 Latest medium update
 --------------------

@@ -38,6 +38,9 @@ const {
   parseSetupChannelsCustomId
 } = require('../../../utils/setupChannelPicker')
 const {
+  collectManagedSetupIds
+} = require('../../../utils/setupDelete')
+const {
   acknowledgeInteraction,
   replyPrivateSystem,
   updateInteraction
@@ -82,7 +85,7 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.createMissing) {
-      return handleCreateMissing(interaction, parsed, stateByUser)
+      return handleCreateMissing(interaction, parsed, { saveServerConfigs, serverConfigs, stateByUser })
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.confirm) {
@@ -118,10 +121,10 @@ async function handleChannelSelect(interaction, parsed, stateByUser) {
   return updatePicker(interaction, state.channels, null, state.privateAccess)
 }
 
-async function handleCreateMissing(interaction, parsed, stateByUser) {
-  const state = getPickerState(interaction, stateByUser, parsed)
+async function handleCreateMissing(interaction, parsed, context) {
+  const state = getPickerState(interaction, context.stateByUser, parsed)
   let channels = normalizeSetupChannelSelection(state.channels)
-  const parentResult = await findNewChannelParent(interaction, channels)
+  const parentResult = await findNewChannelParent(interaction, channels, state, context)
   if (!parentResult.ok) {
     return updatePicker(interaction, channels, {
       title: 'Category creation failed',
@@ -140,6 +143,7 @@ async function handleCreateMissing(interaction, parsed, stateByUser) {
     }
     channels[key] = created
     state.managedChannels[key] = created
+    savePendingManagedSetup(interaction, state, context)
   }
 
   state.channels = channels
@@ -199,12 +203,14 @@ function getPickerState(interaction, stateByUser, parsed = null) {
   const key = getStateKey(interaction)
   const existing = stateByUser.get(key)
   if (existing) {
+    existing.managedCategories ??= {}
     existing.managedChannels ??= {}
     if (parsed?.accessSpecified) existing.privateAccess = parsed.privateAccess === true
     return existing
   }
   const created = {
     channels: createExistingSetupChannelSelection(interaction.guild),
+    managedCategories: {},
     managedChannels: {},
     privateAccess: parsed?.privateAccess === true,
     updatedAt: Date.now()
@@ -213,12 +219,13 @@ function getPickerState(interaction, stateByUser, parsed = null) {
   return created
 }
 
-async function findNewChannelParent(interaction, channels) {
+async function findNewChannelParent(interaction, channels, state, context) {
   const selected = SETUP_CHANNEL_PICKER_KEYS.map(key => channels[key]).find(Boolean)
   const selectedParentId = selected?.parentId || selected?.parent?.id || null
   if (selectedParentId) return { ok: true, parentId: selectedParentId }
 
-  const result = await findOrCreateAutoSetupCategory(interaction.guild)
+  const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
+  savePendingManagedSetup(interaction, state, context)
   if (!result.ok) return { ok: false, parentId: null }
   return { ok: true, parentId: result.category?.id || null }
 }
@@ -247,6 +254,34 @@ function pruneState(stateByUser, now = Date.now()) {
 
 function hasAdministrator(interaction) {
   return hasAdministratorOrGlobalCommandAccess(interaction)
+}
+
+function savePendingManagedSetup(interaction, state, context = {}) {
+  const guildId = interaction.guild?.id
+  if (!guildId || !context.serverConfigs?.set || !context.saveServerConfigs) return
+
+  const previous = context.serverConfigs.get(guildId) || {}
+  const tracked = collectManagedSetupIds({
+    managedCategories: state.managedCategories,
+    managedChannels: state.managedChannels
+  })
+  const next = {
+    ...previous,
+    setupManagedCategoryIds: uniqueIds([
+      ...(Array.isArray(previous.setupManagedCategoryIds) ? previous.setupManagedCategoryIds : []),
+      ...tracked.setupManagedCategoryIds
+    ]),
+    setupManagedChannelIds: uniqueIds([
+      ...(Array.isArray(previous.setupManagedChannelIds) ? previous.setupManagedChannelIds : []),
+      ...tracked.setupManagedChannelIds
+    ])
+  }
+  context.serverConfigs.set(guildId, next)
+  context.saveServerConfigs(context.serverConfigs)
+}
+
+function uniqueIds(ids) {
+  return [...new Set(ids.filter(Boolean).map(String))]
 }
 
 module.exports = {
