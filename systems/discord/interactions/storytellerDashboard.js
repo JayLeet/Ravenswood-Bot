@@ -38,6 +38,7 @@ const {
 
 function createStorytellerDashboardSystem({
   client,
+  deletePendingGameSummary,
   serverConfigs,
   saveServerConfigs,
   gameLifecycle,
@@ -145,6 +146,7 @@ function createStorytellerDashboardSystem({
   })
   const handleStorytellerDashboardButton = createStorytellerDashboardButtonHandler({
     dashboardState,
+    deletePendingGameSummary,
     ensureStorytellerDashboardReady,
     gameLifecycle,
     gameManager,
