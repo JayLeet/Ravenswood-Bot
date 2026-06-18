@@ -58,7 +58,11 @@ function createStorytellerDashboardStatus({ serverConfigs, saveServerConfigs }) 
     const signature = createPayloadSignature(payload)
     const fetched = await fetchStatusMessageState(channel, serverConfig.storytellerDashboardStatusMessageId, { guildId, subsystem })
     if (fetched.unavailable) return null
-    const existing = fetched.message
+    const existing = await detachMisfiledNightOrderGuidanceStatus({
+      fetchedMessage: fetched.message,
+      guildId,
+      serverConfig
+    })
     if (existing) {
       if (payloadSignatures.get(existing.id) === signature) return existing
       const updated = await recover('edit-status-message', () => queuedMessageEdit(existing, payload), {
@@ -84,6 +88,14 @@ function createStorytellerDashboardStatus({ serverConfigs, saveServerConfigs }) 
     serverConfigs.set(guildId, serverConfig)
     saveServerConfigs(serverConfigs)
     return sent
+  }
+
+  async function detachMisfiledNightOrderGuidanceStatus({ fetchedMessage, guildId, serverConfig }) {
+    if (!isNightOrderGuidanceMessage(fetchedMessage)) return fetchedMessage
+    delete serverConfig.storytellerDashboardStatusMessageId
+    serverConfigs.set(guildId, serverConfig)
+    saveServerConfigs(serverConfigs)
+    return null
   }
 
   async function clearNightOrderGuidanceForControlPayload(channel, guildId, serverConfig, payload) {
@@ -202,6 +214,12 @@ function createStorytellerDashboardStatus({ serverConfigs, saveServerConfigs }) 
       removedPayloads
     }
   }
+}
+
+function isNightOrderGuidanceMessage(message) {
+  return (message?.embeds || []).some(embed =>
+    (embed?.data?.title || embed?.title) === 'Night Order Guidance'
+  )
 }
 
 async function fetchTextChannel(client, channelId, context = {}) {
