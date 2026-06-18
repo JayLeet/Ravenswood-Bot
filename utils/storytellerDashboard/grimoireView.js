@@ -20,6 +20,12 @@ const {
   createStorytellerSeatingMapFields
 } = require('./grimoireSeatingMap')
 const {
+  createMobileGrimoireFields
+} = require('./grimoireMobile')
+const {
+  createFullGrimoireComponents
+} = require('./grimoireButtons')
+const {
   REMINDER_TOKENS,
   getAvailableReminderTokenEntries
 } = require('./reminderTokens')
@@ -53,7 +59,27 @@ function createFullGrimoirePayload(view, playerLabels = {}, options = {}) {
 
   return {
     embeds: [embed],
-    components: options.readOnly ? [] : [createBackOnlyRow(createGrimoireCustomId('dashboard')), ...createPlayerButtonRows(view, playerLabels)].slice(0, 5)
+    components: options.readOnly ? [] : createFullGrimoireComponents(view, playerLabels, 'Mobile view', createGrimoireCustomId('mobile'))
+  }
+}
+
+function createMobileGrimoirePayload(view, playerLabels = {}, options = {}) {
+  const embed = new EmbedBuilder()
+    .setTitle(options.title || 'Grimoire')
+    .setColor(0x8e44ad)
+    .setTimestamp()
+
+  const players = view.users.players || []
+  const fields = createMobileGrimoireFields(view, playerLabels)
+  if (fields.length) embed.addFields(...fields)
+
+  const demonBluffs = formatDemonBluffs(view, playerLabels)
+  if (demonBluffs) embed.addFields({ name: 'Demon not-in-play characters', value: truncate(demonBluffs, 1024), inline: false })
+  if (!players.length) embed.setDescription('No players are in the game yet.')
+
+  return {
+    embeds: [embed],
+    components: options.readOnly ? [] : createFullGrimoireComponents(view, playerLabels, 'Desktop view', createGrimoireCustomId('full'))
   }
 }
 
@@ -153,19 +179,6 @@ function createBackOnlyRow(customId = createGrimoireCustomId('back'), style = Bu
   return new ActionRowBuilder().addComponents(createButton('Back', customId, style))
 }
 
-function createPlayerButtonRows(view, playerLabels = {}) {
-  const players = (view.users.players || []).slice(0, 20)
-  const rows = []
-  for (let index = 0; index < players.length; index += 5) {
-    rows.push(new ActionRowBuilder().addComponents(
-      ...players.slice(index, index + 5).map(playerId =>
-        createButton(truncate(getPlayerLabel(playerId, playerLabels), 80), createGrimoireCustomId('player', playerId), ButtonStyle.Secondary)
-      )
-    ))
-  }
-  return rows
-}
-
 function createPlayerSummary(view, playerId, playerLabels = {}) {
   return [
     formatRoleLine(view, playerId),
@@ -247,6 +260,7 @@ module.exports = {
   REMINDER_TOKENS,
   createFullGrimoirePayload,
   createGrimoireMenuPayload,
+  createMobileGrimoirePayload,
   createPlayerGrimoirePayload,
   createReminderTokenPayload,
   createPlayerSummary,
