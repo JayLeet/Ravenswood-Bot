@@ -32,6 +32,11 @@ const { registerRuntimeMaintenanceTask } = require('../../../utils/runtimeMainte
 const {
   createAdminInteractionDiagnostics
 } = require('./adminDiagnostics')
+const {
+  createUnsupportedStorytellerControlMessage,
+  isStorytellerRelatedControl,
+  reportUnsupportedStorytellerControl
+} = require('./storytellerDashboard/controlAudit')
 const { createButtonRateLimiter } = require('./buttonRateLimit')
 const {
   guardPausedReplacementCommand,
@@ -66,7 +71,7 @@ function createInteractionRouter(deps) {
     handleVotingInteraction, postOrUpdateStorytellerDashboard
   } = deps
   const log = createBotLogger({ subsystem: 'InteractionRouter' })
-  const adminDiagnostics = createAdminInteractionDiagnostics({ serverConfigs })
+  const adminDiagnostics = createAdminInteractionDiagnostics({ gameLifecycle, serverConfigs })
   const buttonRateLimiter = createButtonRateLimiter({ gameLifecycle })
   registerRuntimeMaintenanceTask('buttonRateLimiter', () => ({ removed: buttonRateLimiter.prune(), size: buttonRateLimiter.size() }))
 
@@ -199,10 +204,21 @@ async function runMatchedHandler(handler, interaction) {
 
 function handleGenericButton(interaction, handleGamePanelInteraction) {
   if (isGamePanelAction(interaction.customId)) return handleGamePanelInteraction(interaction)
+  if (isStorytellerRelatedControl(interaction.customId)) {
+    const fallback = createUnsupportedStorytellerControlMessage('button')
+    reportUnsupportedStorytellerControl(interaction, 'button')
+    return respondPrivateSystem(interaction, 'Unknown control', fallback.message, fallback.suggestion)
+  }
   return respondPrivateSystem(interaction, 'Unknown control', 'That button is from an old, missing, or unsupported bot panel.', 'Refresh the relevant panel, then try the current button.')
 }
 
 function handleUnhandledComponent(interaction) {
+  if (isStorytellerRelatedControl(interaction.customId)) {
+    const kind = interaction.isButton?.() ? 'button' : 'control'
+    const fallback = createUnsupportedStorytellerControlMessage(kind)
+    reportUnsupportedStorytellerControl(interaction, kind)
+    return respondPrivateSystem(interaction, 'Unknown control', fallback.message, fallback.suggestion)
+  }
   return respondPrivateSystem(
     interaction,
     'Unknown control',
