@@ -103,10 +103,14 @@ function shouldShowFirstNightInfo(action, view) {
   return Number(view.day || action?.day || 1) === 1
 }
 
-function getNotInPlayRoleIds(view) {
+function getNotInPlayRoleIds(view, options = {}) {
   const inPlay = new Set(Object.values(view?.engine?.roles || {}).filter(Boolean))
-  return Object.values(view?.engine?.roleCategories || {})
-    .flatMap(roleIds => roleIds || [])
+  const allowedTeams = options.teams?.length ? new Set(options.teams) : null
+  return Object.entries(view?.engine?.roleCategories || {})
+    .flatMap(([team, roleIds]) => {
+      if (allowedTeams && !allowedTeams.has(team)) return []
+      return roleIds || []
+    })
     .filter(roleId => !inPlay.has(roleId))
 }
 
