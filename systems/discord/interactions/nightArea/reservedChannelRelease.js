@@ -2,6 +2,12 @@ const {
   setChannelNameIfChanged
 } = require('../../../../utils/discord/channelState')
 const {
+  getBotUserId
+} = require('../../../../utils/discord/botIdentity')
+const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   setPermissionOverwritesIfChanged
 } = require('../../../../utils/discord/permissionOverwriteSignature')
 const {
@@ -45,7 +51,7 @@ async function releaseReservedNightChannel({ guild, channelId, botUserId, player
   if (!channel.value) return { clearRef: false, touched: 0 }
 
   const context = { channelId, guildId: guild.id, playerId }
-  const overwrites = createHiddenNightVoicePermissions(guild, botUserId || getBotUserId(guild))
+  const overwrites = createHiddenNightVoicePermissions(guild, botUserId || getBotUserId(guild, 'bot'))
   const hidden = await setPermissionOverwritesIfChanged(channel.value, overwrites).catch(err => {
     log.recoverable('hide-reserved-night-channel', err, context)
     return RELEASE_FAILED
@@ -80,17 +86,6 @@ async function fetchReleaseChannel(guild, channelId, action, context = {}) {
   })
 }
 
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
-}
-
-function getBotUserId(guild) {
-  return guild?.client?.user?.id || guild?.members?.me?.id || 'bot'
-}
-
 module.exports = {
-  isMissingChannelError,
   releaseReservedNightArea
 }
