@@ -1,6 +1,9 @@
 const { ChannelType } = require('discord.js')
 const { AUTO_SETUP_CATEGORY_NAME } = require('./botcChannelNames')
 const { queuedGuildChannelCreate } = require('./discord/channelActions')
+const {
+  getCachedGuildChannels
+} = require('./discord/cacheValues')
 const { logSetupRecoverable } = require('./setupLogging')
 
 async function findOrCreateAutoSetupCategory(guild, options = {}) {
@@ -34,7 +37,7 @@ async function findExistingAutoSetupCategory(guild) {
 }
 
 function findCachedAutoSetupCategory(guild) {
-  return getCachedChannels(guild).find(channel =>
+  return getCachedGuildChannels(guild).find(channel =>
     channel.type === ChannelType.GuildCategory &&
     channel.name === AUTO_SETUP_CATEGORY_NAME
   ) || null
@@ -52,16 +55,6 @@ async function refreshGuildChannels(guild, action) {
       logSetupRecoverable(action, err, { guildId: guild.id }, false)
       return { ok: false, error: err }
     })
-}
-
-function getCachedChannels(guild) {
-  if (typeof guild.channels?.cache?.values === 'function') {
-    return [...guild.channels.cache.values()]
-  }
-
-  if (Array.isArray(guild.channels?.cache)) return guild.channels.cache
-
-  return []
 }
 
 module.exports = {
