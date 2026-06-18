@@ -5,14 +5,15 @@ const {
   createNightWakeEntries,
   createNightWakeMenuPayload,
   parseNightOrderCustomId,
-  parseWakeSendText,
-  STORYTELLER_DASHBOARD_ACTIONS
+  parseWakeSendText
 } = require('../../embeds')
 const { formatRoleWithEmoji } = require('../../../../utils/roleFormatting')
 const {
+  DASHBOARD_SUCCESS_TITLE,
   acknowledgeInteraction,
   editDashboardFailure,
   editDashboardLifecycleFailure,
+  editInteractionReply,
   updateInteraction
 } = require('../feedback')
 const {
@@ -25,11 +26,7 @@ const {
   sendQuickInfoResponse
 } = require('./quickInfo')
 const {
-  updateControlPayload
-} = require('./randomRoleButton')
-const {
-  clearNightOrderState,
-  getNightOrderState
+  clearNightOrderState
 } = require('./nightOrderState')
 const {
   isNightOrderOpenButton
@@ -90,7 +87,7 @@ async function handleNightOrderButton(interaction, context, deps) {
       services: deps.services,
       state
     })
-    await interaction.botcUpdateDashboardStatus?.('Done', formatNightOrderMoveMessage(context, result), 0x2ecc71)
+    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, formatNightOrderMoveMessage(context, result), 0x2ecc71)
     return updateNightOrderForState(interaction, context, state, deps)
   }
 
@@ -172,7 +169,7 @@ async function sendCurrentNightOrderPrompt(interaction, context, state, deps) {
 
 async function sendWakePrompt(interaction, context, parsed, state, entry, labels, deps) {
   if (isResolvedPermanentFirstNightInfo(entry.action)) {
-    await interaction.botcUpdateDashboardStatus?.('Done', 'First-night information was already sent.', 0x2ecc71)
+    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, 'First-night information was already sent.', 0x2ecc71)
     return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(context.view, labels, state))
   }
   if (shouldSkipAlreadySentFirstNightInfo(context.game, entry)) {
@@ -189,7 +186,7 @@ async function sendWakePrompt(interaction, context, parsed, state, entry, labels
         deps
       )
     }
-    await interaction.botcUpdateDashboardStatus?.('Done', 'First-night information is already on that player role card.', 0x2ecc71)
+    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, 'First-night information is already on that player role card.', 0x2ecc71)
     return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(view, labels, state))
   }
 
@@ -230,7 +227,7 @@ async function sendWakeTargetPrompt(interaction, context, state, entry, labels, 
       promptMessage.id
     )
   }
-  await interaction.botcUpdateDashboardStatus?.('Done', message, 0x2ecc71)
+  await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, message, 0x2ecc71)
   return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(context.view, labels, state))
 }
 
@@ -254,7 +251,7 @@ async function sendWakeText(interaction, context, state, entry, labels, deps, te
   if (!result.ok) return editDashboardLifecycleFailure(interaction, result)
   const view = maybeResolveInfoOnly(interaction, context, entry, deps) || context.view
   if (!isPermanentFirstNightInfo(entry.action)) {
-    await interaction.botcUpdateDashboardStatus?.('Done', message, 0x2ecc71)
+    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, message, 0x2ecc71)
   }
   return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(view, labels, state))
 }
@@ -288,7 +285,7 @@ function updateNightOrderPayload(interaction, payload) {
   if (typeof interaction.update === 'function' && !interaction.deferred && !interaction.replied) {
     return updateInteraction(interaction, payload)
   }
-  return updateControlPayload(interaction, payload)
+  return editInteractionReply(interaction, payload)
 }
 
 module.exports = { closeNightOrderGuidance, createNightOrderButtonHandler, deleteNightOrderGuidanceMessage, getWakeSendText, handleNightOrderButton, handleNightOrderWakeButton, isNightOrderOpenButton, maybeResolveInfoOnly, openDedicatedNightOrderGuidance, sendCurrentNightOrderPrompt, sendWakePrompt, shouldSendTargetPrompt, shouldSkipAlreadySentFirstNightInfo, updateNightOrderPayload, updateNightOrderState }
