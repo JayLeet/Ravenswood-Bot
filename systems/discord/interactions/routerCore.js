@@ -46,12 +46,15 @@ const {
   isIgnorableInteractionResponseError
 } = require('../../../utils/discord/interactionErrors')
 const {
+  hasInteractionResponse
+} = require('../../../utils/discord/interactionState')
+const {
   createBotLogger
 } = require('../../../utils/logger')
 
 function createInteractionRouter(deps) {
   const {
-    client, gameLifecycle, gameManager, serverConfigs, saveServerConfigs,
+    client, deletePendingGameSummary, gameLifecycle, gameManager, serverConfigs, saveServerConfigs,
     isSetupComplete, createSetupRequiredMessage, getConfiguredChannels,
     handleBotUpdateNotificationInteraction, handleGamePanelInteraction,
     handleFirstJoinSetupNoticeInteraction, handleGameLogInteraction, handleIdleLobbyInteraction, handleNightActionInteraction,
@@ -108,6 +111,7 @@ function createInteractionRouter(deps) {
 
       await cmd.execute(interaction, {
         client,
+        deletePendingGameSummary,
         gameLifecycle, gameManager,
         serverConfig: setupComplete ? serverConfig : null,
         serverConfigs, saveServerConfigs,
@@ -230,10 +234,6 @@ function isUnhandledComponent(interaction) {
     interaction.isStringSelectMenu?.() ||
     interaction.isChannelSelectMenu?.() ||
     interaction.isModalSubmit?.()
-}
-
-function hasInteractionResponse(interaction) {
-  return interaction.deferred === true || interaction.replied === true
 }
 
 async function ensureCommandEnvironment(interaction, serverConfig, ctx) {
