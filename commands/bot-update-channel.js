@@ -3,7 +3,7 @@ const {
   ChannelType,
   PermissionFlagsBits
 } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   canUseBotUpdateChannel
 } = require('../utils/botUpdateChannel')
@@ -16,6 +16,7 @@ const SUBCOMMANDS = Object.freeze({
   show: 'show',
   clear: 'clear'
 })
+const UPDATE_CHANNEL_FALLBACK_TEXT = 'If no saved channel is usable, update notices use the dedicated BOTC Bot channel when available, then another usable server channel.'
 const options = [
   {
     name: SUBCOMMANDS.set,
@@ -57,7 +58,7 @@ const command = {
 }
 
 async function executeBotUpdateChannelCommand(interaction, { serverConfigs, saveServerConfigs }) {
-  if (!hasAdministrator(interaction)) {
+  if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
     return { ok: false, error: { message: 'You need Administrator permission or bot owner access to configure the BOTC Bot update channel.' } }
   }
 
@@ -86,23 +87,54 @@ async function setUpdateChannel(interaction, serverConfigs, saveServerConfigs) {
   return {
     ok: true,
     title: 'Update channel saved',
-    message: `BOTC Bot update embeds will post in <#${channel.id}>.`
+    message: `Future BOTC Bot update embeds will post in <#${channel.id}>.\n\nNo restart is needed.`
   }
 }
 
-function showUpdateChannel(interaction, serverConfigs) {
+async function showUpdateChannel(interaction, serverConfigs) {
   const config = serverConfigs.get(interaction.guild.id) || {}
+  if (config.botUpdateChannelId) {
+    const channel = await fetchUpdateChannel(interaction.guild, config.botUpdateChannelId)
+    if (canUseBotUpdateChannel(channel, interaction.guild)) {
+      return {
+        ok: true,
+        title: 'BOTC Bot update channel',
+        message: `Saved update channel: <#${config.botUpdateChannelId}>.\n\nFuture BOTC Bot update embeds will post there.`
+      }
+    }
+
+    return {
+      ok: true,
+      title: 'Update channel needs attention',
+      message: [
+        `Saved update channel: <#${config.botUpdateChannelId}>.`,
+        '',
+        'I cannot use that channel right now. It may have been deleted, hidden from the bot, or missing Send Messages.',
+        '',
+        UPDATE_CHANNEL_FALLBACK_TEXT,
+        '',
+        'Use `/bot-update-channel set` to choose a channel I can view and send messages in.'
+      ].join('\n')
+    }
+  }
+
   return {
     ok: true,
     title: 'BOTC Bot update channel',
-    message: config.botUpdateChannelId
-      ? `Configured update channel: <#${config.botUpdateChannelId}>.`
-      : 'No update channel is configured. I will use an existing bot channel, create `bot-updates`, or fall back to general chat.'
+    message: `No update channel is saved.\n\n${UPDATE_CHANNEL_FALLBACK_TEXT}`
   }
 }
 
 function clearUpdateChannel(interaction, serverConfigs, saveServerConfigs) {
   const config = serverConfigs.get(interaction.guild.id) || {}
+  if (!config.botUpdateChannelId) {
+    return {
+      ok: true,
+      title: 'No update channel saved',
+      message: `There was no saved update channel to clear.\n\n${UPDATE_CHANNEL_FALLBACK_TEXT}`
+    }
+  }
+
   const next = { ...config }
   delete next.botUpdateChannelId
   serverConfigs.set(interaction.guild.id, next)
@@ -111,15 +143,20 @@ function clearUpdateChannel(interaction, serverConfigs, saveServerConfigs) {
   return {
     ok: true,
     title: 'Update channel cleared',
-    message: 'BOTC Bot update embeds will use an existing bot channel, create `bot-updates`, or fall back to general chat.'
+    message: `BOTC Bot update embeds will no longer use <#${config.botUpdateChannelId}>.\n\n${UPDATE_CHANNEL_FALLBACK_TEXT}`
   }
 }
 
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
+async function fetchUpdateChannel(guild, channelId) {
+  if (!channelId) return null
+  const cached = guild?.channels?.cache?.get?.(channelId)
+  if (cached) return cached
+  if (typeof guild?.channels?.fetch !== 'function') return null
+  return guild.channels.fetch(channelId).catch(() => null)
 }
 
 module.exports = Object.assign(command, {
   executeBotUpdateChannelCommand,
-  hasAdministrator
+  fetchUpdateChannel,
+  showUpdateChannel
 })
