@@ -169,7 +169,6 @@ async function sendCurrentNightOrderPrompt(interaction, context, state, deps) {
 
 async function sendWakePrompt(interaction, context, parsed, state, entry, labels, deps) {
   if (isResolvedPermanentFirstNightInfo(entry.action)) {
-    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, 'First-night information was already sent.', 0x2ecc71)
     return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(context.view, labels, state))
   }
   if (shouldSkipAlreadySentFirstNightInfo(context.game, entry)) {
@@ -186,7 +185,6 @@ async function sendWakePrompt(interaction, context, parsed, state, entry, labels
         deps
       )
     }
-    await interaction.botcUpdateDashboardStatus?.(DASHBOARD_SUCCESS_TITLE, 'First-night information is already on that player role card.', 0x2ecc71)
     return updateNightOrderPayload(interaction, createNightOrderGuidancePayload(view, labels, state))
   }
 
