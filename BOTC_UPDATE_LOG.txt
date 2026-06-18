@@ -1,18 +1,19 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.2.0
-Latest update type: medium
+Current version: 1.2.1
+Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.2.0
-Type: medium
+Version: 1.2.1
+Type: patch
 Date: 2026-06-18
 Requires /setup: no
 Changes:
+- Reposts the full 1.2 update summary for servers that received the shorter notice earlier.
 - `/setup-manual` replaces the old `/setup-channels` command. Self-hosted copies should redeploy slash commands after updating.
 - Setup screens, first-join notices, and setup success messages are shorter and clearer.
 - Setup checks and setup failures now explain Discord permission and role-order blockers more precisely.
