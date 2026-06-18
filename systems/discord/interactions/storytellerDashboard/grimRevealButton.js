@@ -75,6 +75,7 @@ function createGrimRevealButtonHandler({
 async function sendFinalGameLogNotice({
   deletePendingGameSummary,
   interaction,
+  manualPromptDelayMs,
   result,
   serverConfig,
   serverConfigs
@@ -83,7 +84,9 @@ async function sendFinalGameLogNotice({
     client: interaction.client,
     deletePendingGameSummary,
     guildId: interaction.guild.id,
+    manualPromptDelayMs,
     result,
+    serverConfig,
     serverConfigs
   })
   if (!components.length) return null
