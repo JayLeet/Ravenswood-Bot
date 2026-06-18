@@ -6,6 +6,9 @@ const {
   editPermissionOverwrite
 } = require('./discord/permissionOverwriteActions')
 const {
+  permissionSetIncludes
+} = require('./discord/permissionBits')
+const {
   createBotLogger
 } = require('./logger')
 
@@ -243,19 +246,6 @@ function hasStorytellerVoiceControls(overwrite) {
     permissionSetIncludes(overwrite?.allow, PermissionFlagsBits.MoveMembers) &&
     permissionSetIncludes(overwrite?.allow, PermissionFlagsBits.MuteMembers)
   )
-}
-
-function permissionSetIncludes(value, flag) {
-  if (!value) return false
-  if (typeof value.has === 'function') return value.has(flag)
-  if (typeof value.includes === 'function') return value.includes(flag)
-  if (Array.isArray(value)) return value.includes(flag)
-  const bitfield = value.bitfield ?? value
-  try {
-    return (BigInt(bitfield) & BigInt(flag)) === BigInt(flag)
-  } catch {
-    return false
-  }
 }
 
 module.exports = {
