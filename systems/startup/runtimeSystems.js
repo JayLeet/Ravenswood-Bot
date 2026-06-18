@@ -1,7 +1,7 @@
 const path = require('node:path')
-
 const {
   deleteExpiredPendingGameSummaries,
+  deletePendingGameSummariesNotInGuilds,
   deletePendingGameSummary,
   loadCreateGameCooldowns,
   loadPendingGameSummary,
@@ -16,9 +16,7 @@ const {
 const { loadCommands } = require('../discord/commandLoader')
 const { createMemberRecovery } = require('../discord/memberRecovery')
 const { createMemberNicknameSync } = require('../discord/memberNicknames')
-const {
-  createPhaseChannelPermissionSystem
-} = require('../discord/phaseChannelPermissions')
+const { createPhaseChannelPermissionSystem } = require('../discord/phaseChannelPermissions')
 const { createSetupReadiness } = require('../discord/setupReadiness')
 const { createBotUpdateNotificationInteractionSystem } = require('../discord/interactions/botUpdateNotifications')
 const { createFirstJoinSetupNoticeInteractionSystem } = require('../discord/interactions/firstJoinSetupNotice')
@@ -49,9 +47,7 @@ const { loadBotUpdateLog } = require('../../utils/updateLog')
 const { logStartupStep } = require('../../utils/startupDiagnostics')
 const { createGameLifecycleRuntime } = require('./gameLifecycleRuntime')
 const { registerRuntimeMaintenanceSystems } = require('./runtimeMaintenanceRegistration')
-const {
-  createRuntimeEventHandlers
-} = require('./runtimeEventWiring')
+const { createRuntimeEventHandlers } = require('./runtimeEventWiring')
 const GameManager = require('../GameManager')
 const GuildLockService = require('../game/concurrency/GuildLockService')
 
@@ -104,12 +100,12 @@ function createRuntimeSystems({ client, games, serverConfigs }) {
     services
   })
   Object.assign(services, { sendGamePanelNotices: gamePanel.sendGamePanelNotices })
-
   const botUpdateNotifications = createBotUpdateNotificationInteractionSystem({ serverConfigs, saveServerConfigs })
   const gameLog = createGameLogInteractionSystem({ deletePendingGameSummary, loadPendingGameSummary, serverConfigs })
   const setupSettings = createSetupSettingsPanelSystem({ gameManager, serverConfigs })
   const storytellerDashboard = createStorytellerDashboardSystem({
     client,
+    deletePendingGameSummary,
     serverConfigs,
     saveServerConfigs,
     createSetupRequiredMessage,
@@ -242,6 +238,7 @@ function createRuntimeSystems({ client, games, serverConfigs }) {
 
   const { handleInteraction } = createInteractionRouter({
     client,
+    deletePendingGameSummary,
     gameLifecycle,
     gameManager,
     serverConfigs,
@@ -272,6 +269,9 @@ function createRuntimeSystems({ client, games, serverConfigs }) {
 
   const runtimeEventHandlers = createRuntimeEventHandlers({
     client,
+    chatCaptureDeps: { gameManager, loadPendingGameSummary, saveGames, savePendingGameSummary },
+    deletePendingGameSummariesNotInGuilds,
+    deletePendingGameSummary,
     ensureConfiguredGuildReady,
     gameVoiceChannels,
     idleLobby,
