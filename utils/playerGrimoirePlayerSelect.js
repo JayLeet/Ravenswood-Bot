@@ -16,12 +16,14 @@ const {
   createOwnerScopedPlayerGrimoireCustomId
 } = require('./playerGrimoireCustomIds')
 const {
-  createSeatLayout
-} = require('./votingSeatingMap')
+  createCompactButtonLayout,
+  createSpacerButtonLabel,
+  createSeatingButtonLayout,
+  getButtonLabelWidth,
+  padButtonLabel
+} = require('./seatingButtonLayout')
 
 const BLANK_CUSTOM_ID_PREFIX = 'botc:player-grim:blank'
-const BLANK_BUTTON_LABEL = '\u00B7'
-const BUTTON_LABEL_WIDTH = 13
 const DISCORD_BUTTON_LABEL_MAX_LENGTH = 80
 
 function createSelectPlayerButtonRow(view, ownerId, selectedTargetId, notes = {}, playerLabels = {}) {
@@ -62,67 +64,45 @@ function createPlayerSelectPayload({ view, ownerId, notes = {}, selectedTargetId
 function createPlayerButtonRows(view, ownerId, notes = {}, selectedTargetId = null, playerLabels = {}) {
   const playerIds = getPlayerIds(view)
   if (playerIds.length <= 8) {
-    return createSeatingButtonRows(playerIds).map((row, rowIndex) => createButtonRow(
+    const labelWidth = getButtonLabelWidth(playerIds.map(playerId =>
+      createPlayerButtonLabel(view, ownerId, notes, playerLabels, playerId)
+    ))
+    return createSeatingButtonLayout(playerIds, { maxRows: 5 }).map((row, rowIndex) => createButtonRow(
       row,
       rowIndex,
       view,
       ownerId,
       notes,
       selectedTargetId,
-      playerLabels
+      playerLabels,
+      labelWidth
     ))
   }
 
-  return createCompactButtonRows(playerIds).map(row => new ActionRowBuilder().addComponents(
+  return createCompactButtonLayout(playerIds, { maxRows: 5 }).map(row => new ActionRowBuilder().addComponents(
     ...row.map(playerId => createPlayerButton(view, ownerId, notes, selectedTargetId, playerLabels, playerId))
   ))
 }
 
-function createButtonRow(row, rowIndex, view, ownerId, notes, selectedTargetId, playerLabels) {
+function createButtonRow(row, rowIndex, view, ownerId, notes, selectedTargetId, playerLabels, labelWidth) {
   return new ActionRowBuilder().addComponents(
     ...row.map((playerId, columnIndex) => playerId
-      ? createPlayerButton(view, ownerId, notes, selectedTargetId, playerLabels, playerId)
-      : createBlankButton(rowIndex, columnIndex))
+      ? createPlayerButton(view, ownerId, notes, selectedTargetId, playerLabels, playerId, labelWidth)
+      : createBlankButton(rowIndex, columnIndex, labelWidth))
   )
 }
 
-function createSeatingButtonRows(playerIds) {
-  if (!playerIds.length) return []
-  if (playerIds.length === 1) return [[null, playerIds[0], null]]
-  const rows = [[null, playerIds[0], null]]
-  const layout = createSeatLayout(playerIds.length)
-
-  for (let index = 0; index < layout.leftIndexes.length; index += 1) {
-    rows.push([
-      playerIds[layout.leftIndexes[index]] || null,
-      null,
-      playerIds[layout.rightIndexes[index]] || null
-    ])
-  }
-
-  if (layout.southIndex !== null) rows.push([null, playerIds[layout.southIndex], null])
-  return rows.slice(0, 5)
-}
-
-function createCompactButtonRows(playerIds) {
-  const rows = []
-  for (let index = 0; index < playerIds.length && rows.length < 5; index += 5) {
-    rows.push(playerIds.slice(index, index + 5))
-  }
-  return rows
-}
-
-function createPlayerButton(view, ownerId, notes, selectedTargetId, playerLabels, playerId) {
+function createPlayerButton(view, ownerId, notes, selectedTargetId, playerLabels, playerId, labelWidth) {
   return new ButtonBuilder()
     .setCustomId(createOwnerTargetCustomId(ownerId, playerId))
-    .setLabel(padButtonLabel(createPlayerButtonLabel(view, ownerId, notes, playerLabels, playerId)))
+    .setLabel(padButtonLabel(createPlayerButtonLabel(view, ownerId, notes, playerLabels, playerId), labelWidth))
     .setStyle(playerId === selectedTargetId ? ButtonStyle.Primary : ButtonStyle.Secondary)
 }
 
-function createBlankButton(rowIndex, columnIndex) {
+function createBlankButton(rowIndex, columnIndex, labelWidth) {
   return new ButtonBuilder()
     .setCustomId(`${BLANK_CUSTOM_ID_PREFIX}:${rowIndex}:${columnIndex}`)
-    .setLabel(BLANK_BUTTON_LABEL)
+    .setLabel(createSpacerButtonLabel(labelWidth))
     .setStyle(ButtonStyle.Secondary)
     .setDisabled(true)
 }
@@ -131,15 +111,6 @@ function createPlayerButtonLabel(view, ownerId, notes, playerLabels, playerId) {
   const roleId = getBelievedRoleId(view, ownerId, playerId, notes[playerId])
   const label = getPlayerLabel(view, playerLabels, playerId)
   return formatPlayerNameWithEmoji(label, getBelievedRoleEmoji(view, roleId))
-}
-
-function padButtonLabel(label) {
-  const text = String(label || '')
-  if (text.length >= BUTTON_LABEL_WIDTH) return text
-  const missing = BUTTON_LABEL_WIDTH - text.length
-  const left = Math.floor(missing / 2)
-  const right = missing - left
-  return `${'\u2007'.repeat(left)}${text}${'\u2007'.repeat(right)}`
 }
 
 function createOwnerTargetCustomId(ownerId, playerId = null) {
