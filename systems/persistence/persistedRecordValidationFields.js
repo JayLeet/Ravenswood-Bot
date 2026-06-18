@@ -2,6 +2,7 @@ const VALID_GAME_STATES = Object.freeze(['lobby', 'in-game', 'ended'])
 
 const GAME_ARRAY_FIELDS = Object.freeze([
   'alivePlayers',
+  'chatMessages',
   'deadPlayers',
   'executionHistory',
   'messages',
@@ -90,6 +91,7 @@ const ACHIEVEMENT_NUMBER_FIELDS = Object.freeze([
 ])
 
 const PENDING_SUMMARY_STATS_FIELDS = Object.freeze([
+  'chatMessageCount',
   'executionCount',
   'nightActionCount',
   'nominationCount',
