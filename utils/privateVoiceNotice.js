@@ -5,9 +5,11 @@ const {
 function createPrivateVoiceFeatureNotice(phase) {
   if (phase !== 'day') return null
   return [
-    'Private voice chats are available now.',
-    'Start one with `/voicechat player:<player>` or join `🕯️ Create Private Voice`.',
-    'Already inside a private room? Use `/invite player:<player>` to bring in another player.'
+    '🔒 Private voice',
+    'Use `/voicechat player:<player>`, press Start Private Voice, or join `🕯️ Create Private Voice`.',
+    '',
+    '📨 Invite to Room',
+    'Already inside a bot-made room? Use `/invite player:<player>` or press Invite to Room.'
   ].join('\n')
 }
 
