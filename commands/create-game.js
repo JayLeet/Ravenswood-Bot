@@ -1,4 +1,4 @@
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   createGameModeChoicePayload
 } = require('../utils/gamePanel')
