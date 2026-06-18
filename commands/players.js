@@ -1,4 +1,4 @@
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 
 function label(view, userId) {
   if (!userId) return 'None'
