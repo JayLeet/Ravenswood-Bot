@@ -9,8 +9,7 @@ const {
 } = require('./adminDiagnosticHandles')
 const {
   createDiagnosticContext,
-  createDiagnosticPayload,
-  hasAdministrator
+  createDiagnosticPayload
 } = require('./adminDiagnosticPayloads')
 const {
   DEFAULT_SLOW_INTERACTION_NOTICE_MS,
@@ -24,6 +23,9 @@ const {
   getRunningReason,
   getRunningTitle
 } = require('./adminDiagnosticTiming')
+const {
+  hasInteractionResponse
+} = require('../../../utils/discord/interactionState')
 
 const ADMIN_DIAGNOSTIC_STATE = Symbol('botcAdminDiagnosticState')
 
@@ -256,10 +258,6 @@ function createNoopWatch() {
   return { finish: () => null, reportFailure: async () => false }
 }
 
-function hasInteractionResponse(interaction) {
-  return interaction.deferred === true || interaction.replied === true
-}
-
 function acknowledgeDiagnosticInteraction(interaction) {
   return acknowledgeInteraction(interaction) || deferPrivateReply(interaction)
 }
@@ -274,6 +272,5 @@ module.exports = {
   FINISHED_DIAGNOSTIC_DELETE_DELAY_MS,
   MIN_RUNNING_DIAGNOSTIC_DISPLAY_MS,
   createAdminInteractionDiagnostics,
-  hasAdministrator,
   hasVisibleAdminInteractionDiagnostic
 }
