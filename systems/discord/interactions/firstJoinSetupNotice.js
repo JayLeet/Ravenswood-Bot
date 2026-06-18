@@ -1,7 +1,7 @@
 const {
-  FIRST_JOIN_SETUP_CHANNELS_ID,
   FIRST_JOIN_SETUP_CHECK_ID,
   FIRST_JOIN_SETUP_ID,
+  FIRST_JOIN_SETUP_MANUAL_ID,
   isFirstJoinSetupNoticeInteraction
 } = require('../firstJoinSetupNotice')
 const {
@@ -9,9 +9,9 @@ const {
 } = require('./feedback')
 
 const FIRST_JOIN_COMMANDS = Object.freeze({
-  [FIRST_JOIN_SETUP_CHANNELS_ID]: 'setup-channels',
   [FIRST_JOIN_SETUP_CHECK_ID]: 'setup-check',
-  [FIRST_JOIN_SETUP_ID]: 'setup'
+  [FIRST_JOIN_SETUP_ID]: 'setup',
+  [FIRST_JOIN_SETUP_MANUAL_ID]: 'setup-manual'
 })
 
 function createFirstJoinSetupNoticeInteractionSystem({ client, gameManager, saveServerConfigs, serverConfigs }) {
