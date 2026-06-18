@@ -1,18 +1,12 @@
 const {
   createFullGrimoirePayload,
-  createGrimoireCustomId,
   createGrimoireMenuPayload,
+  createMobileGrimoirePayload,
   createPlayerGrimoirePayload,
   createReminderTokenPayload,
   parseGrimoireCustomId,
   STORYTELLER_DASHBOARD_ACTIONS
 } = require('../../embeds')
-const {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  EmbedBuilder
-} = require('discord.js')
 const {
   acknowledgeInteraction,
   editDashboardFailure,
@@ -27,7 +21,11 @@ const {
   postGrimRevealBoard,
   rollbackUnpostedReveal
 } = require('./revealBoardPosting')
+const {
+  trackRevealBoardMessage
+} = require('./endRevealOpen')
 const { handleLunaticGrimoireButton, isLunaticGrimoireAction } = require('./lunaticGrimoireButtons')
+const { createImpReplacementChoicePayload } = require('./impReplacementPayload')
 const { fetchDashboardMember } = require('./memberFetch')
 const { createBotLogger } = require('../../../../utils/logger')
 
@@ -65,6 +63,10 @@ function createGrimoireButtonHandler({
 
     if (parsed.action === 'full') {
       return updateControlPayload(interaction, createFullGrimoirePayload(context.view, labels))
+    }
+
+    if (parsed.action === 'mobile') {
+      return updateControlPayload(interaction, createMobileGrimoirePayload(context.view, labels))
     }
 
     if (parsed.action === 'player') {
@@ -166,34 +168,6 @@ async function handleImpReplacementResult(interaction, context, result, playerId
   return updateControlPayload(interaction, createPlayerGrimoirePayload(result.view, playerId, labels))
 }
 
-function createImpReplacementChoicePayload(view, replacement, labels = {}) {
-  const pending = replacement.pendingReplacement || view?.pendingManualImpReplacement || {}
-  const candidates = replacement.candidates || pending.candidates || []
-  return {
-    embeds: [new EmbedBuilder()
-      .setTitle('Choose the new Imp')
-      .setDescription([
-        'The Imp died and a living Minion must become the new Imp.',
-        'Choose which Minion becomes the Imp. Scarlet Woman is automatic only when alive, sober, healthy, and the Scarlet Woman condition applies.'
-      ].join('\n'))
-      .setColor(0xe74c3c)
-      .setTimestamp()],
-    components: createImpReplacementRows(candidates, pending.id, labels)
-  }
-}
-
-function createImpReplacementRows(candidates, requestId, labels = {}) {
-  const buttons = candidates.slice(0, 20).map(playerId => new ButtonBuilder()
-    .setCustomId(createGrimoireCustomId('imp-replace', playerId, requestId))
-    .setLabel(labels[playerId] || `Player ${String(playerId).slice(-4)}`)
-    .setStyle(ButtonStyle.Danger))
-  const rows = []
-  for (let index = 0; index < buttons.length; index += 5) {
-    rows.push(new ActionRowBuilder().addComponents(buttons.slice(index, index + 5)))
-  }
-  return rows
-}
-
 function normalizeGrimoireResultDeps(deps) {
   if (typeof deps === 'function') return { handleDashboardLifecycleResult: deps }
   return deps || {}
@@ -224,6 +198,7 @@ async function postManualRevealBoard(interaction, context, result, deps = {}) {
     return editRevealBoardFailure(interaction, posted)
   }
 
+  trackRevealBoardMessage(view.pendingEndReveal || result.reveal, posted.message, deps.gameLifecycle)
   return editDashboardSuccess(interaction, 'Game-ending Grimoire reveal board posted. No roles were revealed automatically.')
 }
 
