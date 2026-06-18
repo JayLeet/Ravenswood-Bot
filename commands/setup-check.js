@@ -1,5 +1,5 @@
 const { PermissionFlagsBits } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   getMissingBotSetupPermissions
 } = require('../systems/discord/permissions')
@@ -16,11 +16,11 @@ const {
 
 module.exports = {
   name: 'setup-check',
-  description: 'Check whether the bot setup and permissions look ready.',
+  description: 'Check whether BOTC setup can run.',
   options: [],
   data: {
     name: 'setup-check',
-    description: 'Check whether the bot setup and permissions look ready.',
+    description: 'Check whether BOTC setup can run.',
     options: [],
     default_member_permissions: PermissionFlagsBits.Administrator.toString()
   },
@@ -28,7 +28,7 @@ module.exports = {
   setupExempt: true,
 
   execute: wrapCommand(async interaction => {
-    if (!hasAdministrator(interaction)) {
+    if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
       return {
         ok: false,
         error: { message: 'You need Administrator permission or bot owner access to run setup checks.' }
@@ -50,9 +50,3 @@ module.exports = {
     }
   })
 }
-
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
-}
-
-module.exports.hasAdministrator = hasAdministrator
