@@ -1,5 +1,4 @@
 const {
-  ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
   EmbedBuilder
@@ -48,10 +47,6 @@ function createSetupDeleteButton() {
     .setEmoji('🧹')
     .setLabel('Delete BOTC setup')
     .setStyle(ButtonStyle.Danger)
-}
-
-function createSetupDeleteRow() {
-  return new ActionRowBuilder().addComponents(createSetupDeleteButton())
 }
 
 function isSetupDeleteInteraction(customId) {
@@ -245,7 +240,6 @@ module.exports = {
   createPostDeleteServerConfig,
   createSetupDeleteButton,
   createSetupDeleteResultEmbed,
-  createSetupDeleteRow,
   deleteBotManagedSetup,
   executeSetupDelete,
   isSetupDeleteInteraction
