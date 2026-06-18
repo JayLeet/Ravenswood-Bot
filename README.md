@@ -27,18 +27,45 @@ Run these as a server administrator:
 
 1. `/setup-check` checks whether the bot has the permissions and role position it needs.
 2. `/setup` creates the Ravenswood Bluff category and the normal game channels.
-3. `/setup-channels` lets you pick existing channels instead, or create the missing ones from a picker.
+3. `/setup-manual` lets you pick existing channels instead, or create the missing ones from a picker.
 
 If setup fails, fix the exact permission or role-order issue reported by the bot, then run `/setup-check` again.
 
-The bot works best with Administrator while setting up a server. If you prefer fine-grained permissions, it needs enough access to create and edit channels, manage its game roles, move voice members, manage nicknames, read audit-log entries, send embeds, use application commands, manage messages, and use the voice permissions needed for table channels. Its bot role must be above the roles and channels it needs to manage.
+The bot role must be above every role it needs to create, assign, or edit. If Discord blocks setup even though the bot has the right permissions, check the bot role position first.
+
+## Permissions
+
+The invite link above asks for the permissions Ravenswood Bot currently uses:
+
+- Manage Channels
+- Manage Roles
+- Manage Nicknames
+- Manage Messages
+- Move Members
+- Mute Members
+- View Audit Log
+- View Channels
+- Send Messages
+- Embed Links
+- Attach Files
+- Read Message History
+- Add Reactions
+- Connect
+- Speak
+- Stream
+- Create Public Threads
+- Create Private Threads
+- Send Messages in Threads
+- Use Application Commands
+
+Administrator also works, especially during setup, but it is not required if these permissions and the bot role order are correct.
 
 ## Common commands
 
 - `/help` shows the in-Discord command guide.
 - `/setup-check` checks setup readiness.
 - `/setup` starts public or private server setup.
-- `/setup-channels` opens the manual channel picker.
+- `/setup-manual` opens the manual channel picker.
 - `/create-game` creates a lobby and makes you the Storyteller.
 - `/join` joins the current game or requests to join a live game.
 - `/spectate` joins as a spectator.
@@ -55,6 +82,13 @@ Most live-game work happens from the game panel and Storyteller dashboard after 
 ## Running your own copy
 
 Create a Discord application and bot in the Discord Developer Portal, then add a local `.env` file. The file is intentionally not committed.
+
+In the bot settings, enable these privileged gateway intents:
+
+- Server Members Intent: needed for setup, game roles, nicknames, and member recovery.
+- Message Content Intent: needed for saved game logs to include chat transcripts from BOTC game channels.
+
+The bot also uses the normal Guilds, Guild Messages, and Guild Voice States gateway intents. Those are requested by the code and do not need separate privileged-intent toggles in the Developer Portal. Presence Intent is not needed.
 
 Required values:
 
