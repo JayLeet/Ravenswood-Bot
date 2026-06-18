@@ -1,79 +1,134 @@
+const HELP_PAGE_KEY = Object.freeze({
+  overview: 'overview',
+  setup: 'setup',
+  player: 'player',
+  spectator: 'spectator',
+  storyteller: 'storyteller',
+  admin: 'admin'
+})
+
 const HELP_PAGES = Object.freeze([
   {
-    title: 'BOTC Bot Help - Getting Started',
+    key: HELP_PAGE_KEY.overview,
+    title: '🎭 BOTC Bot Help',
     description: [
-      'Use this bot to help run Blood on the Clocktower games in Discord.',
-      '',
-      '**Basic flow:**',
-      '1. Admins open setup and choose Public setup or Private with BOTC role.',
-      '2. The Storyteller creates a game lobby from the game panel.',
-      '3. Players join before the game starts. Spectators can spectate instantly.',
-      '4. The Storyteller chooses a script and assigns roles with dashboard buttons.',
-      '5. The Storyteller starts the game and uses the dashboard to manage play.'
+      'Choose the page that matches what you need.'
+    ],
+    fields: [
+      helpField('⚙️ Setup and Lobby', 'Setup commands, cleanup tools, update-channel settings, lobby creation, scripts, and start-game commands.'),
+      helpField('👥 Player Commands', 'Character lookup, private Grimoire notes, nominations, player lists, status, and private voice.'),
+      helpField('👁️ Spectator Commands', 'Character lookup, table status, spectator tools, Grimoire access, joining games, and taking an empty Storyteller seat.'),
+      helpField('👑 Storyteller Commands', 'Request handling, end-game flow, phase changes, request lists, resume, and timers.'),
+      helpField('🛡️ Admin and Testing', 'Force-end tools, participant removal, and playtest-server test games.')
     ]
   },
   {
-    title: 'BOTC Bot Help - Setup and Lobby',
+    key: HELP_PAGE_KEY.setup,
+    title: '⚙️ Setup and Lobby',
     description: [
-      '`/setup` - Server-admin only, with bot owner override. Opens setup visibility buttons for public setup or private setup with the BOTC access role.',
-      '`/setup-check` - Server-admin only, with bot owner override. Checks whether setup permissions look ready before choosing setup.',
-      '`/setup-channels` - Server-admin only, with bot owner override. Opens a picker to choose existing setup channels or create missing manual channels.',
-      '`/delete` - Server-admin only, with bot owner override. Deletes BOTC Bot setup channels and categories the bot created while leaving user-created channels alone.',
-      '`/bot-update-channel set/show/clear` - Server-admin only, with bot owner override. Configure where BOTC Bot update embeds are posted.',
-      '`/create-game` - Creates a new game. You become the Storyteller.',
-      '`/script` - Privately shows the current script and characters. Storytellers can use `name` before the game starts to change it.',
-      '`/start` - Storyteller-only. Starts the game.',
-      'Automatic setup prepares the Waiting Room voice channel and shared BOTC voice spaces.'
+      'Admin tools for server setup, cleanup, and lobby creation.'
+    ],
+    fields: [
+      helpField('🛠️ `/setup`', 'Guided setup for most servers.', 'Checks permissions, previews changes, then asks for final confirmation.'),
+      helpField('🩺 `/setup-check`', 'Checks whether setup can run.', 'Use this before setup when a server has strict role or channel permissions.'),
+      helpField('🧩 `/setup-manual`', 'Manual setup for existing servers.', 'Pick a category, Waiting Room, game-log archive, and save behavior.'),
+      helpField('🧹 `/delete`', 'Removes BOTC-managed setup areas.', 'User-created channels and categories are left alone.'),
+      helpField('📣 `/bot-update-channel set/show/clear`', 'Controls where bot update notices go.', 'Admins can choose, view, or clear the saved update channel.'),
+      helpField('👑 `/create-game`', 'Creates a new lobby.', 'The user who creates it becomes the Storyteller.'),
+      helpField('📜 `/script`', 'Shows the current script privately.', 'Storytellers can change it before the game starts.'),
+      helpField('▶️ `/start`', 'Starts the game.', 'Storyteller-only. Use it after roles and players are ready.')
     ]
   },
   {
-    title: 'BOTC Bot Help - Player Commands',
+    key: HELP_PAGE_KEY.player,
+    title: '👥 Player Commands',
     description: [
-      '`/character role:<character>` - Shows character team, ability, wake timing, and notes when known.',
-      '`/grimoire` - Players open private role guesses and notes; spectators request or view approved grimoire access.',
-      '`/invite player:<player>` - Invites another player into your current private voice room.',
-      '`/join` - Joins before the game starts, or sends a join request during a live game.',
-      '`/leave` - Leaves the active game when possible. During a paused game, players and the Storyteller can still leave.',
-      '`/nominate player:<player>` - Living player-only. Nominate once nominations are open.',
-      '`/players` - Lists players, spectators, the Storyteller, and dead-vote availability.',
-      '`/spectate` - Instantly joins as a spectator if you are not already in the current game.',
-      '`/status` - Shows the current game status.',
-      '`/voicechat player:<player>` - Requests a private day voice chat with another player.'
+      'Commands active players may need during a game.'
+    ],
+    fields: [
+      helpField('🔎 `/character role:<character>`', 'Looks up a character.', 'Shows team, ability, wake timing, and notes when known.'),
+      helpField('🔮 `/grimoire`', 'Opens your private Grimoire view.', 'Use it for your notes and seating information.'),
+      helpField('📨 `/invite player:<player>`', 'Invites a player into your private voice room.', 'Use this after you are already inside a bot-made room.'),
+      helpField('🏃 `/leave`', 'Leaves the active game.', 'Available only when the current game state allows leaving.'),
+      helpField('🗣️ `/nominate player:<player>`', 'Nominates a player.', 'Living players can nominate when nominations are open.'),
+      helpField('👥 `/players`', 'Shows the player list.', 'Includes spectators, the Storyteller, deaths, and ghost-vote status.'),
+      helpField('📊 `/status`', 'Shows the current game state.', 'Includes phase, day, player count, and vote state.'),
+      helpField('🔒 `/voicechat player:<player>`', 'Requests a private day voice chat.', 'Use during day or nominations.')
     ]
   },
   {
-    title: 'BOTC Bot Help - Storyteller Commands',
+    key: HELP_PAGE_KEY.spectator,
+    title: '👁️ Spectator Commands',
     description: [
-      '`/approve player:<player>` - Approves the selected player\'s pending join or grimoire request.',
-      '`/become-storyteller` - Takes the Storyteller seat when there is no active Storyteller. Current players cannot become the new Storyteller; spectators can.',
-      '`/end-game` - Storyteller-only. Opens the end-game reveal flow, or ends an empty lobby.',
-      '`/next-phase` - Storyteller-only. Advances the game to the next phase.',
-      '`/reject player:<player>` - Rejects the selected player\'s pending join or grimoire request.',
-      '`/requests` - Shows pending join and grimoire requests with approve/reject buttons.',
-      '`/resume` - Storyteller-only. Resumes a paused substitution game without waiting for a replacement.',
-      '`/timer minutes:<1-10>` - Storyteller-only. Starts a day timer that sounds the Gong when it ends.'
+      'Commands spectators and waiting users may need.'
+    ],
+    fields: [
+      helpField('🔎 `/character role:<character>`', 'Looks up a character.', 'Shows team, ability, wake timing, and notes when known.'),
+      helpField('🔮 `/grimoire`', 'Requests Grimoire access, or opens it after approval.', 'Use this when watching with Storyteller-approved access.'),
+      helpField('👑 `/become-storyteller`', 'Takes an empty Storyteller seat.', 'Works when no Storyteller is active and you are not a player.'),
+      helpField('🚪 `/join`', 'Asks to join as a player.', 'During an active game, the Storyteller reviews the request.'),
+      helpField('🏃 `/leave`', 'Leaves the active game.', 'Available only when the current game state allows leaving.'),
+      helpField('👥 `/players`', 'Shows the player list.', 'Includes spectators, the Storyteller, deaths, and ghost-vote status.'),
+      helpField('👁️ `/spectate`', 'Joins as a spectator.', 'Works instantly if you are not already in the game.'),
+      helpField('📊 `/status`', 'Shows the current game state.', 'Includes phase, day, player count, and vote state.')
     ]
   },
   {
-    title: 'BOTC Bot Help - Admin and Testing',
+    key: HELP_PAGE_KEY.storyteller,
+    title: '👑 Storyteller Commands',
     description: [
-      '`/admin end-game reason:<reason>` - Server-admin only, with bot owner override. Forcefully ends and cleans up the active game.',
-      '`/admin kick user:<user>` - Server-admin only, with bot owner override. Removes a participant without ending the game.',
-      '`/dev` - Bot owner only. Toggles temporary developer channel visibility and message access for yourself.',
+      'Most Storyteller work happens from the dashboard. These commands stay available.'
+    ],
+    fields: [
+      helpField('✅ `/approve player:<player>`', 'Approves a pending request.', 'Covers join requests and Grimoire access requests.'),
+      helpField('❌ `/reject player:<player>`', 'Rejects a pending request.', 'Covers join requests and Grimoire access requests.'),
+      helpField('🏁 `/end-game`', 'Opens the end-game reveal flow.', 'Also ends an empty lobby when no game has started.'),
+      helpField('⏭️ `/next-phase`', 'Moves to the next phase.', 'Use the dashboard when possible; this command is the direct shortcut.'),
+      helpField('📬 `/requests`', 'Shows pending requests.', 'Includes approve and reject buttons.'),
+      helpField('▶️ `/resume`', 'Resumes a paused substitution game.', 'Use when the Storyteller wants to continue without a replacement.'),
+      helpField('⏲️ `/timer minutes:<1-10>`', 'Starts a day timer.', 'The bot sounds the Gong when it ends.')
     ]
   },
   {
-    title: 'BOTC Bot Help - Live Game Notes',
+    key: HELP_PAGE_KEY.admin,
+    title: '🛡️ Admin and Testing',
     description: [
-      'Dead players get one tracked ghost vote.',
-      'Nominations and votes are handled through player commands and Storyteller dashboard controls. Current nominations also appear in the Storyteller dashboard channel.',
-      'View Grimoire opens the full Grimoire immediately, with player buttons below it.',
-      'Night phase permissions and private night areas are managed automatically where possible.',
-      'The Storyteller is always the final authority and can use dashboard overrides when needed.',
-      'Trouble Brewing is the main supported script. Bad Moon Rising and Sects & Violets are partial support for now.'
+      'Restricted commands for cleanup, moderation, and playtesting.'
+    ],
+    fields: [
+      helpField('🛑 `/admin end-game reason:<reason>`', 'Force-ends the active game.', 'Admin-only. Cleans game roles, channels, panels, and voice state.'),
+      helpField('👢 `/admin kick user:<user>`', 'Removes a participant.', 'Admin-only. Keeps the game running when possible.'),
     ]
   }
 ])
+
+const HELP_PAGE_INDEX = Object.freeze(Object.fromEntries(
+  HELP_PAGES.map((page, index) => [page.key, index])
+))
+
+const IN_GAME_HELP_PAGE = Object.freeze({
+  title: '🎮 In-Game Help',
+  description: [
+    'Player commands you may need while a game is running.'
+  ],
+  fields: [
+    helpField('📊 `/status`', 'Shows the current phase.', 'Includes day, player count, and vote state.'),
+    helpField('👥 `/players`', 'Lists the table.', 'Includes players, spectators, deaths, and ghost-vote status.'),
+    helpField('🔎 `/character role:<character>`', 'Looks up a character.', 'Shows ability text and wake notes.'),
+    helpField('🔮 `/grimoire`', 'Opens your private Grimoire view.', 'Use it for your notes and seating information.'),
+    helpField('🗣️ `/nominate player:<player>`', 'Nominates during nominations.', 'Living players only.'),
+    helpField('🔒 `/voicechat player:<player>`', 'Requests a private day voice chat.', 'Use during day or nominations.'),
+    helpField('📨 `/invite player:<player>`', 'Invites someone into your private voice room.', 'Works after you are already inside a bot-made room.'),
+    helpField('🚪 `/leave`', 'Leaves the game.', 'Available only when the current game state allows leaving.')
+  ]
+})
+
+function helpField(name, summary, detail = null) {
+  return {
+    name,
+    value: detail ? `${summary}\n${detail}` : summary
+  }
+}
 
 function getHelpPage(index = 0) {
   const pageIndex = clampPageIndex(index)
@@ -81,6 +136,14 @@ function getHelpPage(index = 0) {
     ...HELP_PAGES[pageIndex],
     index: pageIndex,
     total: HELP_PAGES.length
+  }
+}
+
+function getInGameHelpPage() {
+  return {
+    ...IN_GAME_HELP_PAGE,
+    index: 0,
+    total: 1
   }
 }
 
@@ -92,7 +155,10 @@ function clampPageIndex(index) {
 }
 
 module.exports = {
+  HELP_PAGE_INDEX,
+  HELP_PAGE_KEY,
   HELP_PAGES,
   clampPageIndex,
+  getInGameHelpPage,
   getHelpPage
 }
