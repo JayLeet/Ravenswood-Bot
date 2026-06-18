@@ -1,7 +1,7 @@
 const {
   PermissionFlagsBits
 } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   hasGlobalCommandAccess
 } = require('../utils/commandAccess')
@@ -26,7 +26,7 @@ module.exports = {
   execute: wrapCommand(executeDevCommand)
 }
 
-async function executeDevCommand(interaction) {
+async function executeDevCommand(interaction, ctx = {}) {
   if (!hasGlobalCommandAccess(interaction)) {
     return {
       ok: false,
@@ -35,7 +35,9 @@ async function executeDevCommand(interaction) {
   }
 
   const member = await getInteractionMember(interaction)
-  const result = await toggleDevAccess(interaction.guild, member)
+  const result = await toggleDevAccess(interaction.guild, member, {
+    serverConfig: ctx.serverConfigs?.get?.(interaction.guild.id) || ctx.serverConfig || {}
+  })
   if (!result.ok) return { ok: false, error: { message: result.message } }
 
   return result.enabled
@@ -50,12 +52,12 @@ async function getInteractionMember(interaction) {
 
 function createEnabledResponse(result) {
   const skipped = result.channelsSkipped
-    ? ` ${result.channelsSkipped} channel(s) were skipped because I cannot manage their permissions.`
+    ? ` ${result.channelsSkipped} channel(s) were skipped because I cannot manage their permissions.${formatChannelList('Skipped', result.skippedChannels)}`
     : ''
   return {
     ok: true,
     title: '🤖 Dev access enabled',
-    message: `Added ${DEV_ROLE_NAME} and refreshed view/send access for ${result.channelsUpdated} channel(s).${skipped}`
+    message: `Added ${DEV_ROLE_NAME} and refreshed view/send access for ${result.channelsUpdated} channel(s).${formatChannelList('Updated', result.updatedChannels)}${skipped}`
   }
 }
 
@@ -65,6 +67,13 @@ function createDisabledResponse() {
     title: '🤖 Dev access disabled',
     message: `Removed ${DEV_ROLE_NAME}. Run \`/dev\` again whenever you need developer channel access.`
   }
+}
+
+function formatChannelList(label, channels = []) {
+  if (!channels.length) return ''
+  const visible = channels.slice(0, 6).join(', ')
+  const remaining = channels.length > 6 ? `, and ${channels.length - 6} more` : ''
+  return `\n${label}: ${visible}${remaining}.`
 }
 
 module.exports.executeDevCommand = executeDevCommand
