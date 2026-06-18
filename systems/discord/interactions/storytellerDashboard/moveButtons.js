@@ -26,7 +26,8 @@ function createMoveButtonHandler({
   services
 }) {
   return async function handleMoveButton(interaction, context) {
-    if (!isMoveButton(interaction.customId)) return null
+    const moveAction = getMoveButtonAction(interaction)
+    if (!moveAction) return null
 
     if (context.view.phase !== 'night') {
       return editDashboardFailure(interaction, {
@@ -36,12 +37,12 @@ function createMoveButtonHandler({
       })
     }
 
-    if (interaction.customId === STORYTELLER_DASHBOARD_ACTIONS.move) {
+    if (moveAction === 'open') {
       const labels = await getDashboardPlayerLabels(interaction.client, interaction.guild.id, context.view)
       return updateMovePayload(interaction, createMoveTargetsPayload(context.view, labels))
     }
 
-    if (interaction.customId === STORYTELLER_DASHBOARD_ACTIONS.moveBack) {
+    if (moveAction === 'back') {
       const selectedPlayerId = dashboardState.getSelectedPlayer(interaction.guild.id, interaction.member.id)
       const labels = await getDashboardPlayerLabels(interaction.client, interaction.guild.id, context.view)
       return updateMovePayload(interaction, createStorytellerDashboardPayload(context.view, {
@@ -50,7 +51,7 @@ function createMoveButtonHandler({
       }))
     }
 
-    if (interaction.customId === STORYTELLER_DASHBOARD_ACTIONS.moveDen) {
+    if (moveAction === 'den') {
       const channel = await services.ensureStorytellerDenVoiceChannel?.(interaction, context)
       return moveStoryteller(interaction, channel, 'Moved you to the Storyteller Den.')
     }
@@ -112,10 +113,46 @@ async function moveStoryteller(interaction, channel, successMessage) {
 }
 
 function isMoveButton(customId) {
-  return customId === STORYTELLER_DASHBOARD_ACTIONS.move ||
-    customId === STORYTELLER_DASHBOARD_ACTIONS.moveBack ||
-    customId === STORYTELLER_DASHBOARD_ACTIONS.moveDen ||
-    Boolean(parseMovePlayerCustomId(customId))
+  return Boolean(getMoveButtonAction(customId))
+}
+
+function getMoveButtonAction(input) {
+  const customId = getMoveCustomId(input)
+  if (customId === STORYTELLER_DASHBOARD_ACTIONS.move ||
+    customId === `${STORYTELLER_DASHBOARD_ACTIONS.action}:move`) return 'open'
+  if (customId === STORYTELLER_DASHBOARD_ACTIONS.moveBack) return 'back'
+  if (customId === STORYTELLER_DASHBOARD_ACTIONS.moveDen ||
+    customId === STORYTELLER_DASHBOARD_ACTIONS.goToDen) return 'den'
+  if (parseMovePlayerCustomId(customId)) return 'player'
+  if (getMoveComponentLabel(input) === 'Move') return 'open'
+  return null
+}
+
+function getMoveCustomId(input) {
+  if (typeof input === 'string') return input
+  return String(input?.customId || '')
+}
+
+function getMoveComponentLabel(input) {
+  if (!input || typeof input === 'string') return ''
+  return getComponentLabel(input.component) ||
+    findClickedComponentLabel(input.message?.components, input.customId)
+}
+
+function getComponentLabel(component) {
+  if (!component) return ''
+  const data = component.toJSON?.() || component.data || component
+  return String(data.label || component.label || '')
+}
+
+function findClickedComponentLabel(rows, customId) {
+  for (const row of rows || []) {
+    for (const component of row.components || []) {
+      const data = component.toJSON?.() || component.data || component
+      if (data?.custom_id === customId || data?.customId === customId) return String(data.label || '')
+    }
+  }
+  return ''
 }
 
 async function updateMovePayload(interaction, payload) {
@@ -129,6 +166,7 @@ async function updateMovePayload(interaction, payload) {
 
 module.exports = {
   createMoveButtonHandler,
+  getMoveButtonAction,
   isMoveButton,
   moveStoryteller
 }
