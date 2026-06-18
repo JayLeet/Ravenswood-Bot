@@ -51,6 +51,7 @@ function createRandomRolesPayload(view, draft = {}) {
   const baseCounts = getBaseSetupCounts(playerCount)
   const selectedCount = countDraftRoles(draft)
   const drunkSelected = isDrunkSelected(draft)
+  const scriptHasDrunk = hasDrunk(scriptLikeView)
   const drunkShownName = draft.drunkShownRoleId
     ? getRoleDisplayName(view, draft.drunkShownRoleId)
     : 'Not chosen yet'
@@ -58,6 +59,9 @@ function createRandomRolesPayload(view, draft = {}) {
   const selectedTeam = normalizeRandomRoleTeam(draft.selectedTeam)
   const teamLimit = getRandomRoleTeamLimit(playerCount, draft, selectedTeam)
   const selectedTeamCount = getRandomRoleTeamCount(draft, selectedTeam)
+  const shouldShowDrunkSetupGuidance = scriptHasDrunk && (
+    drunkSelected || !isRandomRoleTeamFull(playerCount, draft, 'outsider')
+  )
   const distributionLines = createRandomRoleDistributionLines(playerCount, draft)
 
   return {
@@ -71,7 +75,7 @@ function createRandomRolesPayload(view, draft = {}) {
           modifiers.length ? `Setup modifiers available: ${modifiers.join('; ')}` : null,
           drunkSelected ? `Drunk thinks they are: ${drunkShownName}` : null,
           drunkSelected ? 'This shown Townsfolk is not an extra real role.' : null,
-          hasDrunk(scriptLikeView)
+          shouldShowDrunkSetupGuidance
             ? 'Setup Drunk here by selecting Drunk as the real Outsider, then choosing the Townsfolk they see.'
             : null,
           '',
@@ -86,8 +90,12 @@ function createRandomRolesPayload(view, draft = {}) {
             ? 'Overall required count reached. Unselect a chosen role before selecting a different one.'
             : null,
           '',
-          'After the game starts, move Drunk by selecting the Townsfolk player who should become Drunk and assigning them Drunk from Assign Role.',
-          'The previous Drunk automatically becomes the Townsfolk they were shown as.'
+          drunkSelected
+            ? 'After the game starts, move Drunk by selecting the Townsfolk player who should become Drunk and assigning them Drunk from Assign Role.'
+            : null,
+          drunkSelected
+            ? 'The previous Drunk automatically becomes the Townsfolk they were shown as.'
+            : null
         ].filter(Boolean).join('\n'))
         .setColor(0x9b59b6)
     ],
