@@ -7,7 +7,9 @@ const {
 const {
   createPrivateVoiceTargetRows,
   parsePrivateVoiceInvitePromptCustomId,
-  parsePrivateVoiceNoticeCustomId
+  parsePrivateVoiceNoticeCustomId,
+  parsePrivateVoiceNoticeSimulationActorCustomId,
+  parsePrivateVoiceNoticeSimulationTargetCustomId
 } = require('../../../utils/privateVoiceRequests')
 const {
   getPrivateVoicePlayerChoices,
@@ -17,6 +19,11 @@ const {
   findPrivateConversationOwnerByChannel
 } = require('./voiceChannels/dayPrivateAccess')
 const {
+  createTestPrivateVoiceSimulationPayload,
+  handleTestPrivateVoiceSimulationActorSelect,
+  handleTestPrivateVoiceSimulationTargetSelect
+} = require('./privateVoiceTestSimulation')
+const {
   fetchGuildMemberWithRecoverableFallback
 } = require('../../../utils/discord/recoverableFetch')
 const {
@@ -25,21 +32,48 @@ const {
 
 const log = createBotLogger({ subsystem: 'PrivateVoiceNoticeButtons' })
 
-function createPrivateVoiceNoticeButtonHandler({ gameLifecycle }) {
+function createPrivateVoiceNoticeButtonHandler({ gameLifecycle, gameVoiceChannels = null }) {
   return async function handlePrivateVoiceNoticeButton(interaction) {
     const notice = parsePrivateVoiceNoticeCustomId(interaction.customId)
-    if (notice) return handlePrivateVoiceNoticeInteraction(interaction, notice, gameLifecycle)
+    if (notice) return handlePrivateVoiceNoticeInteraction(interaction, notice, { gameLifecycle, gameVoiceChannels })
 
     const invitePrompt = parsePrivateVoiceInvitePromptCustomId(interaction.customId)
     if (invitePrompt) return handlePrivateVoiceInvitePromptInteraction(interaction, invitePrompt, gameLifecycle)
+
+    const simulationActor = parsePrivateVoiceNoticeSimulationActorCustomId(interaction.customId)
+    if (simulationActor) return handleTestPrivateVoiceSimulationActorSelect(interaction, simulationActor, gameLifecycle)
+
+    const simulationTarget = parsePrivateVoiceNoticeSimulationTargetCustomId(interaction.customId)
+    if (simulationTarget) {
+      return handleTestPrivateVoiceSimulationTargetSelect(interaction, simulationTarget, {
+        gameLifecycle,
+        gameVoiceChannels
+      })
+    }
 
     return null
   }
 }
 
-async function handlePrivateVoiceNoticeInteraction(interaction, parsed, gameLifecycle) {
+async function handlePrivateVoiceNoticeInteraction(interaction, parsed, { gameLifecycle, gameVoiceChannels }) {
   const game = gameLifecycle.get(interaction.guild.id)
+  const simulationPayload = createTestPrivateVoiceSimulationPayload({
+    action: parsed.action,
+    game,
+    gameLifecycle,
+    interaction
+  })
+  if (simulationPayload) return respondPrivatePayload(interaction, simulationPayload)
+
   const requesterId = interaction.member?.id || interaction.user?.id
+  if (gameLifecycle.getRole?.(game, requesterId) !== 'player') {
+    return respondPrivateSystem(
+      interaction,
+      'Only players can use this button',
+      'Start Private Voice and Invite to Room are player controls during real games.'
+    )
+  }
+
   const ownerId = parsed.action === 'invite'
     ? findPrivateConversationOwnerByChannel(game, interaction.member?.voice?.channelId)
     : requesterId
