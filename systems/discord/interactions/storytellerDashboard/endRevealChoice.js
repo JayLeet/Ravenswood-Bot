@@ -123,6 +123,7 @@ async function chooseWinner(interaction, context, revealId, winnerChoice, deps) 
       deletePendingGameSummary: deps.deletePendingGameSummary,
       guildId: interaction.guild.id,
       result,
+      serverConfig: context.serverConfig,
       serverConfigs: deps.serverConfigs
     })
     : []
