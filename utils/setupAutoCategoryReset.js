@@ -4,11 +4,15 @@ const {
 } = require('../systems/discord/interactions/nightArea/reservedChannels')
 const {
   AUTO_SETUP_CATEGORY_NAME,
-  BOT_UPDATE_CHANNEL_NAME
+  BOT_UPDATE_CHANNEL_NAME,
+  normalizeChannelName
 } = require('./botcChannelNames')
 const {
   queuedChannelDelete
 } = require('./discord/channelActions')
+const {
+  getCachedGuildChannels
+} = require('./discord/cacheValues')
 const {
   setChannelParentIfChanged
 } = require('./discord/channelState')
@@ -41,7 +45,7 @@ async function resetAutoSetupCategories(guild, options = {}) {
 }
 
 async function deleteCategoryAndChildren(guild, category, options = {}) {
-  const children = getCachedChannels(guild).filter(channel => channel.parentId === category.id)
+  const children = getCachedGuildChannels(guild).filter(channel => channel.parentId === category.id)
 
   for (const child of children) {
     if (shouldPreserveDuringSetupReset(child, options.preserveChannelIds)) {
@@ -64,10 +68,6 @@ function isBotUpdateChannel(channel) {
     normalizeChannelName(channel.name) === normalizeChannelName(BOT_UPDATE_CHANNEL_NAME)
 }
 
-function normalizeChannelName(name) {
-  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-}
-
 function moveBotUpdateChannelOutOfResetCategory(channel) {
   return setChannelParentIfChanged(channel, null, { lockPermissions: false })
     .then(() => true)
@@ -80,18 +80,10 @@ function deleteChannel(channel, reason) {
 }
 
 function findCategoriesByName(guild, name) {
-  return getCachedChannels(guild).filter(channel =>
+  return getCachedGuildChannels(guild).filter(channel =>
     channel.type === ChannelType.GuildCategory &&
     channel.name === name
   )
-}
-
-function getCachedChannels(guild) {
-  if (typeof guild.channels.cache.values === 'function') {
-    return [...guild.channels.cache.values()]
-  }
-
-  return [...guild.channels.cache]
 }
 
 function refreshGuildChannels(guild, action) {
