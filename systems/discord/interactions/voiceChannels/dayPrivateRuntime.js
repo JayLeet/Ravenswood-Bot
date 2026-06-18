@@ -78,7 +78,9 @@ function createDayPrivateVoiceRuntime({
       )
     }
 
-    const ownerMember = await fetchDayPrivateMember(context.guild, ownerId, 'fetch-day-private-owner')
+    const ownerMember = gameLifecycle.isFakePlayer?.(context.game, ownerId)
+      ? null
+      : await fetchDayPrivateMember(context.guild, ownerId, 'fetch-day-private-owner')
     const channel = await ensurePlayerPrivateConversationVoiceChannel({
       guild: context.guild,
       parent: context.voiceParent,
@@ -98,6 +100,10 @@ function createDayPrivateVoiceRuntime({
 
     const movement = createMovementSummary()
     for (const playerId of [...new Set(movePlayerIds)]) {
+      if (gameLifecycle.isFakePlayer?.(context.game, playerId)) {
+        movement.skippedDisconnected.push(playerId)
+        continue
+      }
       await movePlayerToVoiceChannel(context.guild, playerId, channel, movement)
     }
     logMovementIssues(guildId, 'private conversation voice', movement)
