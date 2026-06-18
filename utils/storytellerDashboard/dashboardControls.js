@@ -220,6 +220,5 @@ module.exports = {
   RESUME_BUTTON_ID,
   createMainButtonRow,
   createRoleButtons,
-  isClocktowerOnlineMode: isClocktowerLiveMode,
   shouldShowVotingHistoryButton
 }
