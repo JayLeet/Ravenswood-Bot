@@ -17,6 +17,7 @@ const DASHBOARD_FEEDBACK_TITLES = new Set([
   'Action finished',
   'Action needs attention',
   'Action still running',
+  'Loading...',
   // Keep legacy dashboard feedback recognizable so old status messages clean up safely.
   'Done'
 ])
