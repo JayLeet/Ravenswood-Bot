@@ -34,7 +34,7 @@ const BUTTON_EMOJIS = Object.freeze({
   'Lower your hand': '\u{1F447}',
   'Desktop view': '\u{1F5A5}\uFE0F',
   'Mobile view': '\u{1F4F1}',
-  Move: '\u{1F500}',
+  Move: '\u{1F50A}',
   Minions: '\u{1F40D}',
   'Night Order': '\u{1F319}',
   Next: '\u{27A1}\u{FE0F}',
