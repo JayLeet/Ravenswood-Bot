@@ -14,6 +14,9 @@ const UPDATE_NOTICE_TOGGLE_ID = 'botc:update-notices:toggle'
 const UPDATE_NOTICE_CHANNEL_BUTTON_ID = 'botc:update-notices:channel'
 const UPDATE_NOTICE_CHANNEL_SELECT_ID = 'botc:update-notices:channel-select'
 const IMPORTANT_UPDATE_LABEL = 'Get notified on important future updates'
+const UPDATE_TYPE_FIELD = '📦 Update type'
+const SETUP_FIELD = '⚙️ Rerun /setup?'
+const SUBSCRIPTION_FIELD = '🔔 Important update pings'
 
 function createBotUpdatePayload({ subscriberIds = [], updateLog }) {
   const normalizedSubscriberIds = normalizeUpdateNoticeUserIds(subscriberIds)
@@ -32,12 +35,12 @@ function createBotUpdatePayload({ subscriberIds = [], updateLog }) {
     allowedMentions: { users: pingUserIds },
     embeds: [
       new EmbedBuilder()
-        .setTitle(`BOTC Bot updated to ${updateLog.currentVersion}`)
+        .setTitle(`📣 BOTC Bot updated to ${updateLog.currentVersion}`)
         .setDescription(changes)
         .addFields(
-          { name: 'Update type', value: updateLog.latestUpdateType || entry.type || 'unknown', inline: true },
-          { name: 'Rerun /setup?', value: setupNote, inline: false },
-          { name: 'Important update pings', value: formatUpdateNoticeSubscriptionField(normalizedSubscriberIds, pingSubscribers), inline: false }
+          { name: UPDATE_TYPE_FIELD, value: updateLog.latestUpdateType || entry.type || 'unknown', inline: true },
+          { name: SETUP_FIELD, value: setupNote, inline: false },
+          { name: SUBSCRIPTION_FIELD, value: formatUpdateNoticeSubscriptionField(normalizedSubscriberIds, pingSubscribers), inline: false }
         )
     ],
     components: createUpdateNoticeActionRows()
@@ -136,6 +139,9 @@ function shouldPingUpdateSubscribers(updateLog) {
 
 module.exports = {
   IMPORTANT_UPDATE_LABEL,
+  SETUP_FIELD,
+  SUBSCRIPTION_FIELD,
+  UPDATE_TYPE_FIELD,
   UPDATE_NOTICE_CHANNEL_BUTTON_ID,
   UPDATE_NOTICE_CHANNEL_SELECT_ID,
   UPDATE_NOTICE_TOGGLE_ID,
