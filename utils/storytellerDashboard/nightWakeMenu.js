@@ -24,6 +24,8 @@ const {
   truncate
 } = require('./formatters')
 
+const NOT_IN_PLAY_TEAMS = ['townsfolk', 'outsider']
+
 function createNightWakeMenuPayload(view, entry, index, playerLabels = {}, page = 'main', selected = [], draft = []) {
   if (page === 'more') return createSecondPagePayload(entry, index, draft)
   if (page === 'players') return createPlayerMenuPayload(view, entry, index, playerLabels, draft)
@@ -122,12 +124,13 @@ function createCharacterMenuPayload(view, entry, index, draft = []) {
 }
 
 function createNotInPlayMenuPayload(view, entry, index, selected = [], draft = []) {
-  const roles = getNotInPlayRoleIds(view).slice(0, 20)
-  const description = `Choose exactly 3 not-in-play characters. Selected: ${selected.length}/3.`
+  const roles = getSelectableNotInPlayRoleIds(view).slice(0, 20)
+  const safeSelected = normalizeNotInPlaySelection(view, selected)
+  const description = `Choose exactly 3 good characters that are not in play. Selected: ${safeSelected.length}/3.`
   return {
     embeds: [createMenuEmbed(entry, description, draft)],
     components: [
-      ...createButtonRows(roles.map(roleId => createNotInPlayButton(view, index, roleId, selected))),
+      ...createButtonRows(roles.map(roleId => createNotInPlayButton(view, index, roleId, safeSelected))),
       createBackRow(index),
       createSubmitRow(index, draft)
     ]
@@ -188,7 +191,8 @@ function createButtonRows(buttons) {
 }
 
 function formatNotInPlayInfo(view, roleIds) {
-  return `These characters are not in play:\n${roleIds.map(roleId => `- ${formatRoleButtonLabel(view, roleId)}`).join('\n')}`
+  const safeRoleIds = normalizeNotInPlaySelection(view, roleIds)
+  return `These characters are not in play:\n${safeRoleIds.map(roleId => `- ${formatRoleButtonLabel(view, roleId)}`).join('\n')}`
 }
 
 function parseNotInPlaySelection(value) {
@@ -198,6 +202,21 @@ function parseNotInPlaySelection(value) {
 
 function encodeSelection(roleId, selected) {
   return `${roleId}|${selected.slice(0, 3).join(',')}`
+}
+
+function getSelectableNotInPlayRoleIds(view) {
+  return getNotInPlayRoleIds(view, { teams: NOT_IN_PLAY_TEAMS })
+}
+
+function normalizeNotInPlaySelection(view, selected = []) {
+  const allowed = new Set(getSelectableNotInPlayRoleIds(view))
+  const safeSelection = []
+  for (const roleId of selected) {
+    if (!allowed.has(roleId) || safeSelection.includes(roleId)) continue
+    safeSelection.push(roleId)
+    if (safeSelection.length >= 3) break
+  }
+  return safeSelection
 }
 
 function createBackRow(index) {
@@ -246,6 +265,7 @@ module.exports = {
   createNightWakeMenuPayload,
   createNumberMenuPayload,
   formatNotInPlayInfo,
+  normalizeNotInPlaySelection,
   parseNotInPlaySelection,
   parseWakeSendText
 }
