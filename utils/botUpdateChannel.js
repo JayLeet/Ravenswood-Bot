@@ -10,11 +10,15 @@ const { createBotLogger } = require('./logger')
 const {
   AUTO_SETUP_CATEGORY_NAME,
   BOT_UPDATE_CHANNEL_NAME,
-  BOT_UPDATE_CHANNEL_SOURCE
+  BOT_UPDATE_CHANNEL_SOURCE,
+  normalizeChannelName
 } = require('./botcChannelNames')
 const {
   applyBotChannelAccess
 } = require('./botChannelAccess')
+const {
+  getCacheValues
+} = require('./discord/cacheValues')
 const {
   createBotUpdateChannel,
   deleteUnsafeCreatedBotChannel
@@ -219,11 +223,19 @@ async function refreshGuildChannels(guild) {
 function canUseBotUpdateChannel(channel, guild) {
   if (!NOTICE_CHANNEL_TYPES.has(channel?.type)) return false
   if (!channel?.isTextBased?.()) return false
-  const botMember = guild.members?.me
+  const botMember = getBotMember(channel, guild)
   if (!botMember) return false
   if (botMember.permissions?.has?.(PermissionFlagsBits.Administrator)) return true
   const permissions = channel.permissionsFor?.(botMember)
   return Boolean(permissions?.has?.(PermissionFlagsBits.ViewChannel) && permissions?.has?.(PermissionFlagsBits.SendMessages))
+}
+
+function getBotMember(channel, guild) {
+  return guild?.members?.me ||
+    channel?.guild?.members?.me ||
+    channel?.guild?.members?.cache?.get?.(channel?.client?.user?.id) ||
+    guild?.members?.cache?.get?.(guild?.client?.user?.id) ||
+    null
 }
 
 function isChannelInCategory(channel, category = null) {
@@ -234,22 +246,13 @@ function getChannelWords(channel) {
   return normalizeChannelName(channel?.name).split('-').filter(Boolean)
 }
 
-function normalizeChannelName(name) {
-  return String(name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
-}
-
-function getCacheValues(cache) {
-  if (Array.isArray(cache)) return cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  return []
-}
-
 module.exports = {
   AUTO_SETUP_CATEGORY_NAME,
   BOT_UPDATE_CHANNEL_NAME,
   BOT_UPDATE_CHANNEL_SOURCE,
   canUseBotUpdateChannel,
   findOrCreateBotUpdateCategory,
+  getBotMember,
   getOrCreateBotUpdateChannel,
   normalizeChannelName
 }
