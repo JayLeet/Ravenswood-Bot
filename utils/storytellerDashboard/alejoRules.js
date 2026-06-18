@@ -4,7 +4,6 @@ const {
   ButtonStyle
 } = require('discord.js')
 const {
-  shouldUseAlejoOrdering,
   scriptHasSnakeCharmer
 } = require('../../systems/game/roles/FirstNightInfoRules')
 const {
@@ -47,10 +46,6 @@ function shouldShowAlejoRuleChoice(view) {
   const script = getScript(view?.scriptId)
   if (!scriptHasSnakeCharmer(script)) return false
   return view?.engine?.nightOptions?.alejoRules == null
-}
-
-function shouldUseAlejoRulesForView(view) {
-  return shouldUseAlejoOrdering(view, getScript(view?.scriptId))
 }
 
 module.exports = {
