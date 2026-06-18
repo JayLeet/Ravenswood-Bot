@@ -70,6 +70,7 @@ function createActionEntry(view, script, action, playerLabels = {}) {
     playerId,
     playerLabel: formatPlayerLabel(playerId, playerLabels),
     roleName: formatRoleWithEmoji(view, action.roleId),
+    roleTeam: role?.team || null,
     prompt: action.prompt || role?.howItWorks || role?.ability || 'Handle this character prompt.',
     response: formatSubmittedResponse(action, view, playerLabels),
     reminders: createReminderSummary(view, playerId),
