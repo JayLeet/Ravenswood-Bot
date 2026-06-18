@@ -13,6 +13,9 @@ const {
   queuedMessageDelete
 } = require('../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../utils/discord/interactionErrors')
+const {
   createBotLogger
 } = require('../../../utils/logger')
 
@@ -245,12 +248,6 @@ class CleanupService {
         return null
       })
   }
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = CleanupService
