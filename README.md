@@ -81,7 +81,12 @@ Most live-game work happens from the game panel and Storyteller dashboard after 
 
 ## Running your own copy
 
-Create a Discord application and bot in the Discord Developer Portal, then add a local `.env` file. The file is intentionally not committed.
+Create a Discord application and bot in the Discord Developer Portal, then add a local `.env` file.
+
+Required values:
+
+- `DISCORD_TOKEN`: the bot token from the Discord Developer Portal.
+- `CLIENT_ID`: the Discord application/client ID.
 
 In the bot settings, enable these privileged gateway intents:
 
@@ -89,11 +94,6 @@ In the bot settings, enable these privileged gateway intents:
 - Message Content Intent: needed for saved game logs to include chat transcripts from BOTC game channels.
 
 The bot also uses the normal Guilds, Guild Messages, and Guild Voice States gateway intents. Those are requested by the code and do not need separate privileged-intent toggles in the Developer Portal. Presence Intent is not needed.
-
-Required values:
-
-- `DISCORD_TOKEN`: the bot token from the Discord Developer Portal.
-- `CLIENT_ID`: the Discord application/client ID.
 
 Install dependencies:
 
