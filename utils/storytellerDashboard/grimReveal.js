@@ -19,6 +19,7 @@ const {
 
 const ALIVE_REVEAL_EMOJI = '👤'
 const DEAD_REVEAL_EMOJI = '💀'
+const HIDDEN_REVEAL_BUTTON_EMOJI = '\u2754'
 
 const SUPERSCRIPT_PREFIX_PATTERN = /^[\u2070\u00B9\u00B2\u00B3\u2074-\u2079]+/u
 const STATE_NAME_PREFIXES = [
@@ -49,7 +50,7 @@ function createGrimRevealPayload(view, revealId, playerLabels = {}) {
         .setDescription([
           'The Storyteller may reveal players one by one.',
           reveal.winner
-            ? `The ${formatWinner(reveal.winner)} team has won. Finish revealing roles to close Storyteller access.`
+            ? `The ${formatWinner(reveal.winner)} team has won. Reveal every remaining hidden role to finish cleanup.`
             : createWinnerHelpText(),
           '',
           formatRevealList(view, players, revealed, playerLabels)
@@ -126,6 +127,7 @@ function createRevealRows(view, players, revealed, revealId, playerLabels) {
         new ButtonBuilder()
           .setCustomId(createGrimRevealCustomId(playerId, revealId))
           .setLabel(createButtonLabel(view, playerId, revealed, playerLabels))
+          .setEmoji(createButtonEmoji(view, playerId, revealed))
           .setStyle(revealed.has(playerId) ? ButtonStyle.Secondary : ButtonStyle.Primary)
           .setDisabled(revealed.has(playerId))
       )
@@ -171,11 +173,13 @@ function createEndRevealCustomId(value, revealId = 'pending') {
 }
 
 function createButtonLabel(view, playerId, revealed, playerLabels) {
-  const label = getRevealPlayerName(view, playerId, playerLabels, `Player ${String(playerId).slice(-4)}`)
-  const emoji = revealed.has(playerId)
+  return getRevealPlayerName(view, playerId, playerLabels, `Player ${String(playerId).slice(-4)}`).slice(0, 80)
+}
+
+function createButtonEmoji(view, playerId, revealed) {
+  return revealed.has(playerId)
     ? getRevealEmoji(view, playerId)
-    : getUnrevealedStateEmoji(view, playerId)
-  return `${emoji} ${label}`.slice(0, 80)
+    : HIDDEN_REVEAL_BUTTON_EMOJI
 }
 
 function getRevealPlayerName(view, playerId, playerLabels = {}, fallback = null) {
@@ -212,8 +216,10 @@ function formatWinner(winner) {
 
 module.exports = {
   ALIVE_REVEAL_EMOJI,
+  HIDDEN_REVEAL_BUTTON_EMOJI,
   createClocktowerLiveEndPayload,
   createGrimRevealPayload,
+  createButtonEmoji,
   formatRevealRole,
   getRevealPlayerName,
   getRevealEmoji,
