@@ -2,6 +2,9 @@ const {
   queuedChannelDelete
 } = require('../../../../utils/discord/channelActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   deletePrivateConversationAccess
 } = require('./dayPrivateAccess')
 
@@ -62,15 +65,8 @@ function clearPlayerMadeVoiceState({ game, gameLifecycle, guildId, playerId }) {
   deletePrivateConversationAccess(game, playerId)
 }
 
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
-}
-
 module.exports = {
   cleanupPlayerMadeVoiceChannelRef,
   clearPlayerMadeVoiceState,
-  deleteCleanupVoiceChannel,
-  isMissingChannelError
+  deleteCleanupVoiceChannel
 }
