@@ -3,12 +3,12 @@ const {
   EmbedBuilder
 } = require('discord.js')
 const { listScripts } = require('../systems/game/scripts')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   respondAutocomplete
 } = require('../systems/discord/interactions/feedback')
 const {
-  formatRoleWithEmoji
+  formatRoleNameWithEmoji
 } = require('../utils/roleFormatting')
 
 const MAX_AUTOCOMPLETE_CHOICES = 25
@@ -122,7 +122,7 @@ function createScriptDescription(script) {
 function formatScriptTeamRoles(script, team, view) {
   const roles = (script.roles || []).filter(role => role.team === team)
   if (!roles.length) return 'None'
-  return roles.map(role => formatRoleWithEmoji(view, role.id)).join('\n')
+  return roles.map(role => formatRoleNameWithEmoji(view, role.id)).join('\n')
 }
 
 function createScriptRoleView(script) {
