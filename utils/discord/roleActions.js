@@ -10,6 +10,9 @@ const {
 const {
   runMeasuredDiscordAction
 } = require('./measuredAction')
+const {
+  findCacheValue
+} = require('./cacheValues')
 
 function queuedGuildRoleCreate(guild, options) {
   const key = createGuildRoleCreateQueueKey(guild, options?.name)
@@ -64,12 +67,7 @@ function createGuildRoleCreateQueueKey(guild, roleName = 'unknown-role') {
 
 function findCachedGuildRoleByName(guild, roleName) {
   if (!roleName) return null
-  const cache = guild?.roles?.cache
-  if (!cache) return null
-  if (typeof cache.find === 'function') return cache.find(role => role?.name === roleName) || null
-  if (typeof cache.values === 'function') return [...cache.values()].find(role => role?.name === roleName) || null
-  if (Array.isArray(cache)) return cache.find(role => role?.name === roleName) || null
-  return Object.values(cache).find(role => role?.name === roleName) || null
+  return findCacheValue(guild?.roles?.cache, role => role?.name === roleName)
 }
 
 module.exports = {
