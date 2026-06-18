@@ -3,6 +3,9 @@ const {
   queuedMessageEdit
 } = require('../../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   isProtectedRoleInfoAction
 } = require('../nightPromptMessages')
 
@@ -137,12 +140,6 @@ function clearStalePromptRefs(game, action, ref) {
   }
 
   return cleared
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = {
