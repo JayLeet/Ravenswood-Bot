@@ -13,6 +13,13 @@ const {
 const {
   runMeasuredDiscordAction
 } = require('./measuredAction')
+const {
+  hasPermissionBit,
+  normalizePermissionBitfield
+} = require('./permissionBits')
+const {
+  getCachedPermissionOverwrite
+} = require('./permissionOverwriteCache')
 
 function editPermissionOverwrite(channel, overwriteId, permissions, reason) {
   const key = createPermissionOverwriteQueueKey(channel, overwriteId, 'edit')
@@ -87,20 +94,6 @@ function permissionOverwriteValueMatches(overwrite, permissionName, value) {
   return false
 }
 
-function getCachedPermissionOverwrite(channel, overwriteId) {
-  const cache = channel?.permissionOverwrites?.cache
-  if (typeof cache?.get === 'function') return cache.get(overwriteId) || null
-  if (Array.isArray(cache)) return cache.find(overwrite => overwrite?.id === overwriteId) || null
-  if (typeof cache?.values === 'function') {
-    return [...cache.values()].find(overwrite => overwrite?.id === overwriteId) || null
-  }
-  return null
-}
-
-function hasPermissionBit(bitfield, bit) {
-  return bit !== 0n && (bitfield & bit) === bit
-}
-
 function isFakePermissionOverwriteTargetId(overwriteId) {
   return /^(test-player-|fake[_-])/.test(String(overwriteId || ''))
 }
@@ -137,28 +130,6 @@ function normalizePermissionOverwrite(overwrite) {
 
 function normalizeBitfield(value) {
   return String(normalizePermissionBitfield(value))
-}
-
-function normalizePermissionBitfield(value) {
-  const bitfield = value?.bitfield ?? value
-  if (bitfield === null || bitfield === undefined) return 0n
-
-  if (Array.isArray(bitfield)) {
-    return bitfield.reduce((combined, entry) => {
-      return combined | normalizePermissionBitfield(entry)
-    }, 0n)
-  }
-
-  if (typeof bitfield === 'string') {
-    const namedBit = PermissionFlagsBits[bitfield]
-    if (namedBit !== undefined) return normalizePermissionBitfield(namedBit)
-  }
-
-  try {
-    return BigInt(bitfield)
-  } catch {
-    return 0n
-  }
 }
 
 function createPermissionOverwriteQueueKey(channel, overwriteId = null, action = 'set') {
