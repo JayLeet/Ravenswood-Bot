@@ -12,6 +12,8 @@ const PRIVATE_VOICE_PROMPT_PREFIX = 'bpvp'
 const PRIVATE_VOICE_INVITE_PROMPT_PREFIX = 'bpvpi'
 const PRIVATE_VOICE_PUBLIC_PREFIX = 'bpvpub'
 const PRIVATE_VOICE_NOTICE_PREFIX = 'bpvn'
+const PRIVATE_VOICE_NOTICE_SIMULATION_ACTOR_PREFIX = 'bpvnsa'
+const PRIVATE_VOICE_NOTICE_SIMULATION_TARGET_PREFIX = 'bpvnst'
 
 function createPrivateVoiceRequestRow({ guildId, ownerId, requesterId, targetId }) {
   return new ActionRowBuilder().addComponents(
@@ -189,6 +191,14 @@ function createPrivateVoiceNoticeCustomId(action) {
   return [PRIVATE_VOICE_NOTICE_PREFIX, action].join(':')
 }
 
+function createPrivateVoiceNoticeSimulationActorCustomId({ guildId, action }) {
+  return [PRIVATE_VOICE_NOTICE_SIMULATION_ACTOR_PREFIX, guildId, action].join(':')
+}
+
+function createPrivateVoiceNoticeSimulationTargetCustomId({ guildId, action, ownerId }) {
+  return [PRIVATE_VOICE_NOTICE_SIMULATION_TARGET_PREFIX, guildId, action, ownerId].join(':')
+}
+
 function parsePrivateVoiceNoticeCustomId(customId) {
   const value = String(customId || '')
   if (!value.startsWith(`${PRIVATE_VOICE_NOTICE_PREFIX}:`)) return null
@@ -197,24 +207,50 @@ function parsePrivateVoiceNoticeCustomId(customId) {
   return { action }
 }
 
+function parsePrivateVoiceNoticeSimulationActorCustomId(customId) {
+  const value = String(customId || '')
+  if (!value.startsWith(`${PRIVATE_VOICE_NOTICE_SIMULATION_ACTOR_PREFIX}:`)) return null
+  const [guildId, action] = value.slice(PRIVATE_VOICE_NOTICE_SIMULATION_ACTOR_PREFIX.length + 1).split(':')
+  if (!guildId || !isPrivateVoiceNoticeAction(action)) return null
+  return { action, guildId }
+}
+
+function parsePrivateVoiceNoticeSimulationTargetCustomId(customId) {
+  const value = String(customId || '')
+  if (!value.startsWith(`${PRIVATE_VOICE_NOTICE_SIMULATION_TARGET_PREFIX}:`)) return null
+  const [guildId, action, ownerId] = value.slice(PRIVATE_VOICE_NOTICE_SIMULATION_TARGET_PREFIX.length + 1).split(':')
+  if (!guildId || !ownerId || !isPrivateVoiceNoticeAction(action)) return null
+  return { action, guildId, ownerId }
+}
+
+function isPrivateVoiceNoticeAction(action) {
+  return action === 'start' || action === 'invite'
+}
+
 function isPrivateVoiceRequestInteraction(customId) {
   return Boolean(
     parsePrivateVoiceRequestCustomId(customId) ||
     parsePrivateVoicePromptCustomId(customId) ||
     parsePrivateVoiceInvitePromptCustomId(customId) ||
     parsePrivateVoicePublicCustomId(customId) ||
-    parsePrivateVoiceNoticeCustomId(customId)
+    parsePrivateVoiceNoticeCustomId(customId) ||
+    parsePrivateVoiceNoticeSimulationActorCustomId(customId) ||
+    parsePrivateVoiceNoticeSimulationTargetCustomId(customId)
   )
 }
 
 module.exports = {
   createPrivateVoiceInvitePromptCustomId,
   createPrivateVoiceNoticeRow,
+  createPrivateVoiceNoticeSimulationActorCustomId,
+  createPrivateVoiceNoticeSimulationTargetCustomId,
   createPrivateVoiceTargetRows,
   createPrivateVoiceRequestRow,
   isPrivateVoiceRequestInteraction,
   parsePrivateVoiceInvitePromptCustomId,
   parsePrivateVoiceNoticeCustomId,
+  parsePrivateVoiceNoticeSimulationActorCustomId,
+  parsePrivateVoiceNoticeSimulationTargetCustomId,
   parsePrivateVoicePublicCustomId,
   parsePrivateVoicePromptCustomId,
   parsePrivateVoiceRequestCustomId
