@@ -104,7 +104,7 @@ async function createGame(interaction, serverConfig, gameLifecycle, gameMode) {
   return {
     ok: true,
     refreshStorytellerDashboard: true,
-    message: `Game created. You are the Storyteller. Mode: ${formatGameMode(gameMode)}.`
+    message: `Game created. You are the Storyteller. Mode: ${getGameModeLabel(gameMode)}.`
   }
 }
 
@@ -221,11 +221,6 @@ async function startGame(interaction, gameLifecycle) {
   }
 }
 
-function formatGameMode(gameMode) {
-  return getGameModeLabel(gameMode)
-}
-
 module.exports = {
-  createGamePanelActionRunner,
-  formatGameMode
+  createGamePanelActionRunner
 }
