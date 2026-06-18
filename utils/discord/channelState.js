@@ -10,6 +10,9 @@ const {
 const {
   runMeasuredDiscordAction
 } = require('./measuredAction')
+const {
+  findCacheValue
+} = require('./cacheValues')
 
 function setChannelNameIfChanged(channel, name, reason) {
   const action = 'channel-name-set'
@@ -126,11 +129,7 @@ function getCachedChannelPosition(guild, channelId) {
 function getCachedChannel(guild, channelId) {
   const cache = guild?.channels?.cache
   if (typeof cache?.get === 'function') return cache.get(channelId) || null
-  if (Array.isArray(cache)) return cache.find(channel => channel.id === channelId) || null
-  if (typeof cache?.values === 'function') {
-    return [...cache.values()].find(channel => channel.id === channelId) || null
-  }
-  return null
+  return findCacheValue(cache, channel => channel.id === channelId)
 }
 
 function getChannelPosition(channel) {
