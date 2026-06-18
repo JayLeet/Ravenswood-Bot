@@ -32,16 +32,8 @@ function hasAdministratorPermission(target) {
   return hasPermission(target, PermissionFlagsBits.Administrator)
 }
 
-function hasManageGuildPermission(target) {
-  return hasPermission(target, PermissionFlagsBits.ManageGuild)
-}
-
 function hasAdministratorOrGlobalCommandAccess(target) {
   return hasGlobalCommandAccess(target) || hasAdministratorPermission(target)
-}
-
-function hasManageGuildOrGlobalCommandAccess(target) {
-  return hasGlobalCommandAccess(target) || hasManageGuildPermission(target)
 }
 
 function shouldOmitDefaultMemberPermissions(slashCommand) {
@@ -54,8 +46,6 @@ module.exports = {
   hasAdministratorOrGlobalCommandAccess,
   hasAdministratorPermission,
   hasGlobalCommandAccess,
-  hasManageGuildOrGlobalCommandAccess,
-  hasManageGuildPermission,
   hasPermission,
   shouldOmitDefaultMemberPermissions
 }
