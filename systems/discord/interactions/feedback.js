@@ -6,6 +6,9 @@ const {
   safeInteractionResponse
 } = require('../../../utils/discord/interactionErrors')
 const {
+  extractMentions
+} = require('../../../utils/discord/mentions')
+const {
   decorateButtonPayload
 } = require('../../../utils/discord/messageActions')
 const {
@@ -13,16 +16,15 @@ const {
 } = require('../../../utils/discord/interactionPayloads')
 const { formatFailureMessage } = require('../../../utils/failureSuggestions')
 
+const DASHBOARD_SUCCESS_TITLE = 'Action completed'
+const LEGACY_DASHBOARD_SUCCESS_TITLE = 'Done'
+
 function createSystemEmbed(title, description, color = 0xe74c3c) {
   return new EmbedBuilder()
     .setTitle(title)
     .setDescription(description)
     .setColor(color)
     .setTimestamp()
-}
-
-function extractMentions(message) {
-  return [...new Set(String(message).match(/<@!?\d+>/g) || [])].join(' ') || undefined
 }
 
 function createPrivateOptions(payload = {}) {
@@ -50,11 +52,11 @@ function editDashboardFailure(interaction, failure) {
 }
 
 function editDashboardSuccess(interaction, message) {
-  return sendDashboardFeedback(interaction, 'Done', message, 0x2ecc71)
+  return sendDashboardFeedback(interaction, DASHBOARD_SUCCESS_TITLE, message, 0x2ecc71)
 }
 
 async function sendDashboardFeedback(interaction, title, description, color) {
-  if (title === 'Done' && interaction.botcHasVisibleAdminDiagnostic?.()) {
+  if (isDashboardSuccessTitle(title) && interaction.botcHasVisibleAdminDiagnostic?.()) {
     await acknowledgeInteraction(interaction)
     return true
   }
@@ -180,9 +182,14 @@ function decorateInteractionPayload(payload) {
   return decorateButtonPayload(payload, { preserveBuilders: true })
 }
 
+function isDashboardSuccessTitle(title) {
+  return title === DASHBOARD_SUCCESS_TITLE || title === LEGACY_DASHBOARD_SUCCESS_TITLE
+}
+
 module.exports = {
   acknowledgeInteraction,
   createSystemEmbed,
+  DASHBOARD_SUCCESS_TITLE,
   deleteInteractionFollowUp,
   deleteInteractionReply,
   deferPrivateReply,
