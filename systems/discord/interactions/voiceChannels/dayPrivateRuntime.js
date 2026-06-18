@@ -14,9 +14,11 @@ const {
 } = require('./movement')
 const {
   clearPlayerMadeVoiceState,
-  deleteCleanupVoiceChannel,
-  isMissingChannelError
+  deleteCleanupVoiceChannel
 } = require('./dayPrivateConversationCleanup')
+const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
 const {
   fetchGuildMemberWithRecoverableFallback
 } = require('../../../../utils/discord/recoverableFetch')
