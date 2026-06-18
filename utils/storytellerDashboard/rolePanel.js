@@ -103,23 +103,43 @@ function createDrunkShownRows(view, selectedRole, shownRole) {
 }
 
 function createRolePanelDescription({ playerName, selectedPlayerId, selectedRole, selectedTeam, shownRole, view }) {
+  const scriptHasDrunk = (view.engine.roleCategories?.outsider || []).includes(DRUNK_ROLE_ID)
+  const showDrunkMoveGuidance = shouldShowDrunkMoveGuidance({
+    selectedRole,
+    selectedTeam,
+    scriptHasDrunk,
+    view
+  })
+
   return [
-    `Player: <@${selectedPlayerId}>`,
-    `Current role: ${selectedRole ? getRoleDisplayName(view, selectedRole) : 'Unassigned'}`,
-    `Showing: ${formatCategory(selectedTeam)} buttons`,
+    `👤 Player: <@${selectedPlayerId}>`,
+    `🎭 Current role: ${selectedRole ? getRoleDisplayName(view, selectedRole) : 'Unassigned'}`,
+    `📚 Showing: ${formatCategory(selectedTeam)} buttons`,
     selectedRole === DRUNK_ROLE_ID
-      ? `Drunk sees: ${shownRole ? getRoleDisplayName(view, shownRole) : 'Not chosen yet'}`
+      ? `🍺 Drunk sees: ${shownRole ? getRoleDisplayName(view, shownRole) : 'Not chosen yet'}`
       : null,
     '',
-    `Choose a character type, then choose a role button for ${playerName}.`,
+    `Choose a team, then choose a role for ${playerName}.`,
     selectedRole === DRUNK_ROLE_ID
       ? 'The Townsfolk buttons at the bottom choose what this Drunk sees; they do not change their real role.'
       : null,
-    'Use the Action dropdown if you need to clear the selected player’s role.',
+    'Use Player Controls if you need to clear this role.',
     '',
-    'To move Drunk: select the Townsfolk player who should become Drunk, then assign Drunk from Outsider roles.',
-    'That player keeps their old Townsfolk as what they see. The old Drunk becomes the Townsfolk they were shown as.'
+    showDrunkMoveGuidance
+      ? 'To make this player Drunk, assign Drunk from Outsider roles. They will keep their old Townsfolk role as what they see.'
+      : null,
+    showDrunkMoveGuidance
+      ? 'If another Drunk already exists, that player becomes the Townsfolk they were shown as.'
+      : null
   ].filter(Boolean).join('\n')
+}
+
+function shouldShowDrunkMoveGuidance({ selectedRole, selectedTeam, scriptHasDrunk, view }) {
+  if (!scriptHasDrunk || selectedTeam !== 'outsider' || selectedRole === DRUNK_ROLE_ID) {
+    return false
+  }
+
+  return (view.engine.roleCategories?.townsfolk || []).includes(selectedRole)
 }
 
 function createRoleTeamButtonCustomId(team) {
