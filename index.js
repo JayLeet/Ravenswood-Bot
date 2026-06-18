@@ -46,6 +46,8 @@ async function main(startupOutput) {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMembers,
+      GatewayIntentBits.GuildMessages,
+      GatewayIntentBits.MessageContent,
       GatewayIntentBits.GuildVoiceStates
     ]
   })
@@ -79,7 +81,9 @@ async function main(startupOutput) {
       })
   })
   client.on('guildCreate', runtime.handleGuildCreate)
+  client.on('guildDelete', runtime.handleGuildDelete)
   client.on('interactionCreate', runtime.handleInteraction)
+  client.on('messageCreate', runtime.handleMessageCreate)
 
   const tokenKey = ['DISCORD', 'TOKEN'].join('_')
   await loginWithDiagnostics(client, process.env[tokenKey], startupOutput.logger)
