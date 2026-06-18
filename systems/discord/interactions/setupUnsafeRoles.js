@@ -45,7 +45,7 @@ function createSetupUnsafeRoleInteractionSystem({ gameManager, saveServerConfigs
     const parsed = parseSetupUnsafeRoleCustomId(interaction.customId)
     if (!parsed) return null
 
-    if (!hasAdministrator(interaction)) {
+    if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
       return replyPrivateSystem(
         interaction,
         'Setup cancelled',
@@ -144,7 +144,7 @@ function createSetupChoiceResultPayload(result) {
     return {
       content: null,
       embeds: [createSetupResultEmbed(
-        'Setup failed',
+        '⚠️ Setup could not finish',
         result.error?.message || 'Unknown error',
         SETUP_RESULT_COLORS.error
       )],
@@ -163,7 +163,7 @@ function createSetupChoiceResultPayload(result) {
   return {
     content: null,
     embeds: [createSetupResultEmbed(
-      result.title || 'Setup complete',
+      result.title || '✅ Setup complete',
       result.message || 'Setup complete.',
       SETUP_RESULT_COLORS.success
     )],
@@ -183,10 +183,6 @@ function limitEmbedDescription(description) {
   const text = String(description || 'No details provided')
   if (text.length <= 4096) return text
   return `${text.slice(0, 4093)}...`
-}
-
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
 }
 
 module.exports = {
