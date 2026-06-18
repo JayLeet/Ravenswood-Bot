@@ -2,6 +2,12 @@ const {
   ChannelType,
   PermissionFlagsBits
 } = require('discord.js')
+const {
+  getCachedGuildRoles
+} = require('./discord/cacheValues')
+const {
+  permissionSetIncludes
+} = require('./discord/permissionBits')
 
 const SETUP_PERMISSION_LABELS = Object.freeze([
   ['Manage Channels', PermissionFlagsBits.ManageChannels],
@@ -93,14 +99,7 @@ function isRoleBelowBot(role, botRole) {
 }
 
 function getRolesById(guild) {
-  return new Map(getCachedRoles(guild).map(role => [String(role.id), role]))
-}
-
-function getCachedRoles(guild) {
-  const cache = guild?.roles?.cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  if (Array.isArray(cache)) return cache
-  return []
+  return new Map(getCachedGuildRoles(guild).map(role => [String(role.id), role]))
 }
 
 function getUnmanageableOverwritePermissions(guild, target, overwrites = []) {
@@ -130,19 +129,6 @@ function botHasPermission(botMember, target, permission) {
   const targetPermissions = target?.permissionsFor?.(botMember)
   if (targetPermissions?.has) return targetPermissions.has(permission)
   return Boolean(botMember.permissions?.has?.(permission))
-}
-
-function permissionSetIncludes(value, flag) {
-  if (!value) return false
-  if (typeof value.has === 'function') return value.has(flag)
-  if (typeof value.includes === 'function') return value.includes(flag)
-  if (Array.isArray(value)) return value.includes(flag)
-  const bitfield = value.bitfield ?? value
-  try {
-    return (BigInt(bitfield) & BigInt(flag)) === BigInt(flag)
-  } catch {
-    return false
-  }
 }
 
 function formatChannelLabel(channel) {
