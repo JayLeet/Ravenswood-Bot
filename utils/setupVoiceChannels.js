@@ -18,6 +18,9 @@ const {
   queuedGuildChannelCreate
 } = require('./discord/channelActions')
 const {
+  getCachedGuildChannels
+} = require('./discord/cacheValues')
+const {
   setChannelNameIfChanged,
   setChannelParentIfChanged
 } = require('./discord/channelState')
@@ -87,6 +90,13 @@ async function ensureSetupSharedVoiceChannels(guild, category, gameRoles, option
 
   for (const config of SETUP_SHARED_VOICE_CHANNELS) {
     const overwrites = createSetupVoiceChannelPermissions(guild, roleIds, config)
+    if (config.key === 'waitingRoomVoiceChannel' && options.waitingRoomVoiceChannel) {
+      const refreshed = await refreshSelectedWaitingRoom(options.waitingRoomVoiceChannel, overwrites, category)
+      if (!refreshed) return { ok: false, message: `I could not refresh ${config.name}.` }
+      channels[config.key] = refreshed
+      continue
+    }
+
     const channel = await findOrCreateSetupVoiceChannel(guild, category, config, overwrites, options)
     if (!channel) return { ok: false, message: `I could not create ${config.name}.` }
     channels[config.key] = channel
@@ -190,18 +200,23 @@ async function findOrCreateSetupVoiceChannel(guild, category, config, overwrites
   })
 }
 
+async function refreshSelectedWaitingRoom(channel, overwrites, category) {
+  if (!channel || channel.type !== ChannelType.GuildVoice) return null
+  await setPermissionOverwritesIfChanged(
+    channel,
+    overwrites,
+    'BOTC selected Waiting Room permissions refresh'
+  ).catch(err => log.recoverable('refresh-selected-waiting-room-permissions', err, createSetupVoiceContext(channel, category)))
+  return channel
+}
+
 function findSetupVoiceChannel(guild, names) {
   const lookupNames = new Set(names)
 
-  return getCachedChannels(guild).find(channel =>
+  return getCachedGuildChannels(guild).find(channel =>
     channel.type === ChannelType.GuildVoice &&
     lookupNames.has(channel.name)
   ) || null
-}
-
-function getCachedChannels(guild) {
-  if (typeof guild.channels.cache.values === 'function') return [...guild.channels.cache.values()]
-  return [...guild.channels.cache]
 }
 
 async function refreshSetupVoiceChannel(channel, category, name, overwrites) {
@@ -229,5 +244,6 @@ module.exports = {
   WAITING_ROOM_VOICE_CHANNEL_NAME,
   createSetupVoiceChannelPermissionOverwrites,
   ensureSetupSharedVoiceChannels,
+  refreshSelectedWaitingRoom,
   refreshSetupVoiceChannel
 }
