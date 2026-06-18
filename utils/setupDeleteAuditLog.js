@@ -2,6 +2,9 @@ const {
   AuditLogEvent
 } = require('discord.js')
 const {
+  getBotUserId
+} = require('./discord/botIdentity')
+const {
   getSetupCleanupFallbackStartedAt,
   isAutoSetupCleanupFallbackActive
 } = require('./setupCleanupFallback')
@@ -54,10 +57,6 @@ function getAuditTargetId(entry) {
 function getAuditCreatedTimestamp(entry) {
   const timestamp = Number(entry?.createdTimestamp)
   return Number.isFinite(timestamp) ? timestamp : 0
-}
-
-function getBotUserId(guild) {
-  return guild?.client?.user?.id || guild?.members?.me?.id || null
 }
 
 module.exports = {
