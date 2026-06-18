@@ -5,6 +5,9 @@ const {
   queuedGuildChannelCreate
 } = require('../../../../utils/discord/channelActions')
 const {
+  getBotUserId
+} = require('../../../../utils/discord/botIdentity')
+const {
   setChannelNameIfChanged,
   setChannelParentIfChanged,
   setChannelPositionIfChanged,
@@ -137,7 +140,7 @@ async function acquireReservedChannel(guild, parent, slot) {
 
 async function ensureReservedVoiceChannel(guild, category, slot, options = {}) {
   const existing = getReservedVoiceChannelForSlot(guild, category, slot)
-  const overwrites = createHiddenNightVoicePermissions(guild, getBotUserId(guild))
+  const overwrites = createHiddenNightVoicePermissions(guild, getBotUserId(guild, 'bot'))
   if (existing) return refreshReservedChannel(existing, category, overwrites)
 
   return queuedGuildChannelCreate(guild, {
@@ -209,10 +212,6 @@ function getReservedVoiceChannels(guild, category) {
     .filter(channel => channel.type === ChannelType.GuildVoice)
     .filter(channel => !categoryId || channel.parentId === categoryId)
     .sort((left, right) => getChannelPosition(left) - getChannelPosition(right))
-}
-
-function getBotUserId(guild) {
-  return guild?.client?.user?.id || guild?.members?.me?.id || 'bot'
 }
 
 module.exports = {
