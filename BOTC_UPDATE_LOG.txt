@@ -1,31 +1,22 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.2.1
+Current version: 1.2.2
 Latest update type: patch
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.2.1
+Version: 1.2.2
 Type: patch
 Date: 2026-06-18
 Requires /setup: no
 Changes:
-- Reposts the full 1.2 update summary for servers that received the shorter notice earlier.
-- `/setup-manual` replaces the old `/setup-channels` command. Self-hosted copies should redeploy slash commands after updating.
-- Setup screens, first-join notices, and setup success messages are shorter and clearer.
-- Setup checks and setup failures now explain Discord permission and role-order blockers more precisely.
-- `/delete` is safer around interrupted setup and only removes bot-managed setup areas.
-- Saved game logs now include readable recaps, short-game durations in seconds, and technical IDs only in the moderation section.
-- Saved game logs now include BOTC channel chat transcripts grouped by phase and channel.
-- Game-log saving supports automatic archive posting or manual Save/Discard controls.
-- `/help`, `/script`, setup command descriptions, buttons, and several player-facing messages were cleaned up.
-- Day discussion notices now include private voice chat and invite buttons.
-- Storyteller dashboard, Grimoire views, role emojis, Night Order guidance, and end-game reveal flow received UI and reliability polish.
-- Update notices now ping only users who opted into important update notices, and admins can choose the update-log channel.
-- Self-hosted copies need Server Members Intent and Message Content Intent enabled for the current release.
+- The public Grimoire reveal board no longer repeats the winning team or cleanup instructions after a winner has been chosen.
+- Night Order Guidance now gives clearer role-specific Storyteller instructions, including Demon bluffs and Spy Grimoire follow-up.
+- Old Storyteller dashboard Randomize Roles and Move controls are handled more safely instead of falling through to `Unknown control`.
+- Unsupported Storyteller dashboard controls now leave clearer logs with the exact control ID so support issues can be traced faster.
 
 Latest medium update
 --------------------
