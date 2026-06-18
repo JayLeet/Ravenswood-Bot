@@ -3,6 +3,9 @@ const {
   queuedMessageDelete
 } = require('../../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   cleanupChannelMessages
 } = require('../../../../utils/channelCleanup')
 const {
@@ -225,12 +228,6 @@ function clearNightPromptRefsForPlayer(game, playerId) {
     delete action.promptChannelId
     delete action.promptMessageId
   }
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = {
