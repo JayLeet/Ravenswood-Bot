@@ -154,6 +154,5 @@ module.exports = {
   createNominationDashboardRows,
   createNominationRequestRows,
   getCurrentNomination,
-  isClocktowerOnlineMode: isClocktowerLiveMode,
   isRenderableNomination
 }
