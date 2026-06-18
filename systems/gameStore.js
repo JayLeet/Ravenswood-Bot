@@ -114,6 +114,8 @@ function normalizeGame(game) {
     users: game.users || {},
     requests: game.requests || [],
     messages: game.messages || [],
+    chatMessages: game.chatMessages || [],
+    chatMessagesDropped: Number(game.chatMessagesDropped) || 0,
     state: game.state || 'lobby',
     maxPlayers: game.maxPlayers || 15,
     phaseHistory: game.phaseHistory || [],
