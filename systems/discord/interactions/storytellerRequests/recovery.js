@@ -2,6 +2,9 @@ const {
   isStaleMessageError
 } = require('../../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   runRecoverableDiscordAction
 } = require('../../../../utils/discord/recoverableAction')
 const {
@@ -79,12 +82,6 @@ function createTrackedRequestContext(ref, context = {}, channel = null) {
     playerId: context.playerId,
     recoveryType: 'storyteller-request'
   }
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = {
