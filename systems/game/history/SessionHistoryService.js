@@ -38,19 +38,30 @@ class SessionHistoryService {
       phase: game.phase || null,
       players,
       spectators,
+      displayNames: this.getDisplayNames(users),
+      chatMessages: [...(game.chatMessages || [])],
+      chatMessagesDropped: Number(game.chatMessagesDropped) || 0,
       roles: { ...(game.roles || {}) },
+      shownRoles: { ...(game.shownRoles || {}) },
       roleCategories: { ...(game.roleCategories || {}) },
+      roleHistory: { ...(game.roleHistory || {}) },
       alivePlayers: [...(game.alivePlayers || [])],
       deadPlayers: [...(game.deadPlayers || [])],
       nightVoiceChannels: { ...(game.nightVoiceChannels || {}) },
       storytellerDenChannelId: game.storytellerDenChannelId || null,
       townsquareChannelId: game.townsquareChannelId || null,
       deadVotes: { ...(game.deadVotes || {}) },
+      demonNotInPlayRoles: { ...(game.demonNotInPlayRoles || {}) },
       nominations: [...(game.nominations || [])],
+      nightActions: [...(game.nightActions || [])],
+      votes: [...(game.votes || [])],
       executionHistory: [...(game.executionHistory || [])],
+      messages: [...(game.messages || [])],
       reminders: [...(game.reminders || [])],
+      statusEffects: { ...(game.statusEffects || {}) },
       stats: {
         playerCount: players.length,
+        chatMessageCount: (game.chatMessages || []).length,
         spectatorCount: spectators.length,
         nominationCount: (game.nominations || []).length,
         executionCount: (game.executionHistory || []).length,
@@ -72,6 +83,14 @@ class SessionHistoryService {
   discardPending(guildId) {
     if (!guildId || !this.deletePendingGameSummary) return false
     return this.deletePendingGameSummary(guildId)
+  }
+
+  getDisplayNames(users) {
+    return Object.fromEntries(
+      Object.entries(users || {})
+        .filter(([, user]) => user.displayName)
+        .map(([userId, user]) => [userId, user.displayName])
+    )
   }
 }
 
