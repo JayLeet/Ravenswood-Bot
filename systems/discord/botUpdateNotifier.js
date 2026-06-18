@@ -6,6 +6,9 @@ const {
 const {
   getOrCreateBotUpdateChannel
 } = require('../../utils/botUpdateChannel')
+const {
+  getCacheValues
+} = require('../../utils/discord/cacheValues')
 const { queuedChannelSend } = require('../../utils/discord/messageActions')
 const { createBotLogger } = require('../../utils/logger')
 const { logError } = require('../../utils/startupDiagnostics')
@@ -85,12 +88,6 @@ function shouldAnnounceUpdate(updateLog) {
   if (isInitialVersion(updateLog.currentVersion)) return false
   if (!updateLog.latestEntry) return false
   return true
-}
-
-function getCacheValues(cache) {
-  if (Array.isArray(cache)) return cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  return []
 }
 
 function getBotUpdateNoticeRuntimeState() {
