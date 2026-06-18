@@ -10,6 +10,9 @@ const {
 const {
   fetchGuildMemberWithRecoverableFallback
 } = require('../../../../utils/discord/recoverableFetch')
+const {
+  getDiscordErrorReason
+} = require('../../../../utils/discord/errorReason')
 
 const log = createBotLogger({ subsystem: 'VoiceMovement' })
 
@@ -126,10 +129,6 @@ function createVoiceMoveHint(reason = '') {
   }
 
   return 'check the bot voice permissions and role hierarchy.'
-}
-
-function getDiscordErrorReason(err) {
-  return err?.message || err?.rawError?.message || String(err || 'unknown error')
 }
 
 module.exports = {
