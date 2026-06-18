@@ -39,6 +39,10 @@ const {
 const {
   updateControlPayload
 } = require('./randomRoleButton')
+const {
+  createUnsupportedDashboardControlFailure,
+  reportUnsupportedDashboardControl
+} = require('./controlAudit')
 
 function createStorytellerDashboardSelectHandler({
   dashboardState,
@@ -68,11 +72,8 @@ function createStorytellerDashboardSelectHandler({
     if (nominationBuilderResult) return nominationBuilderResult
 
     if (isStaleRandomRoleSelect(interaction.customId)) {
-      return editDashboardFailure(interaction, {
-        title: 'Unknown control',
-        message: 'That dashboard dropdown is not recognized.',
-        suggestion: 'Refresh the dashboard and try again.'
-      })
+      reportUnsupportedDashboardControl(interaction, 'dropdown')
+      return editDashboardFailure(interaction, createUnsupportedDashboardControlFailure('dropdown'))
     }
 
     const forcedNomination = parseForcedNominationCustomId(interaction.customId)
@@ -126,11 +127,8 @@ function createStorytellerDashboardSelectHandler({
       })
     }
 
-    return editDashboardFailure(interaction, {
-      title: 'Unknown control',
-      message: 'That dashboard dropdown is not recognized.',
-      suggestion: 'Refresh the dashboard and try again.'
-    })
+    reportUnsupportedDashboardControl(interaction, 'dropdown')
+    return editDashboardFailure(interaction, createUnsupportedDashboardControlFailure('dropdown'))
   }
 }
 
