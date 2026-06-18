@@ -9,7 +9,9 @@ const {
 
 const PRIVATE_VOICE_REQUEST_PREFIX = 'bpv'
 const PRIVATE_VOICE_PROMPT_PREFIX = 'bpvp'
+const PRIVATE_VOICE_INVITE_PROMPT_PREFIX = 'bpvpi'
 const PRIVATE_VOICE_PUBLIC_PREFIX = 'bpvpub'
+const PRIVATE_VOICE_NOTICE_PREFIX = 'bpvn'
 
 function createPrivateVoiceRequestRow({ guildId, ownerId, requesterId, targetId }) {
   return new ActionRowBuilder().addComponents(
@@ -40,15 +42,11 @@ function createPrivateVoiceRequestRow({ guildId, ownerId, requesterId, targetId 
   )
 }
 
-function createPrivateVoiceTargetRows({ guildId, ownerId, players = [], includePublicButton = false }) {
+function createPrivateVoiceTargetRows({ guildId, ownerId, requesterId = null, players = [], includePublicButton = false }) {
   const buttons = players.slice(0, 20).map(player =>
     applyButtonEmoji(
       new ButtonBuilder()
-        .setCustomId(createPrivateVoicePromptCustomId({
-          guildId,
-          ownerId,
-          targetId: player.id
-        }))
+        .setCustomId(createPrivateVoiceTargetCustomId({ guildId, ownerId, requesterId, targetId: player.id }))
         .setLabel(String(player.label || `Player ${String(player.id).slice(-4)}`).slice(0, 80))
         .setStyle(ButtonStyle.Secondary),
       'Player'
@@ -71,6 +69,34 @@ function createPrivateVoiceTargetRows({ guildId, ownerId, players = [], includeP
     ))
   }
   return rows
+}
+
+function createPrivateVoiceTargetCustomId({ guildId, ownerId, requesterId = null, targetId }) {
+  if (requesterId && String(requesterId) !== String(ownerId)) {
+    return createPrivateVoiceInvitePromptCustomId({ guildId, ownerId, requesterId, targetId })
+  }
+  return createPrivateVoicePromptCustomId({ guildId, ownerId, targetId })
+}
+
+function createPrivateVoiceNoticeRow() {
+  return new ActionRowBuilder().addComponents(
+    applyButtonEmoji(
+      new ButtonBuilder()
+        .setCustomId(createPrivateVoiceNoticeCustomId('start'))
+        .setEmoji('🔒')
+        .setLabel('Start Private Voice')
+        .setStyle(ButtonStyle.Primary),
+      'Voice'
+    ),
+    applyButtonEmoji(
+      new ButtonBuilder()
+        .setCustomId(createPrivateVoiceNoticeCustomId('invite'))
+        .setEmoji('📨')
+        .setLabel('Invite to Room')
+        .setStyle(ButtonStyle.Secondary),
+      'Invite'
+    )
+  )
 }
 
 function createPrivateVoiceRequestCustomId(action, {
@@ -117,12 +143,30 @@ function createPrivateVoicePromptCustomId({ guildId, ownerId, targetId }) {
   ].join(':')
 }
 
+function createPrivateVoiceInvitePromptCustomId({ guildId, ownerId, requesterId, targetId }) {
+  return [
+    PRIVATE_VOICE_INVITE_PROMPT_PREFIX,
+    guildId,
+    ownerId,
+    requesterId,
+    targetId
+  ].join(':')
+}
+
 function parsePrivateVoicePromptCustomId(customId) {
   const value = String(customId || '')
   if (!value.startsWith(`${PRIVATE_VOICE_PROMPT_PREFIX}:`)) return null
   const [guildId, ownerId, targetId] = value.slice(PRIVATE_VOICE_PROMPT_PREFIX.length + 1).split(':')
   if (!guildId || !ownerId || !targetId) return null
   return { guildId, ownerId, targetId }
+}
+
+function parsePrivateVoiceInvitePromptCustomId(customId) {
+  const value = String(customId || '')
+  if (!value.startsWith(`${PRIVATE_VOICE_INVITE_PROMPT_PREFIX}:`)) return null
+  const [guildId, ownerId, requesterId, targetId] = value.slice(PRIVATE_VOICE_INVITE_PROMPT_PREFIX.length + 1).split(':')
+  if (!guildId || !ownerId || !requesterId || !targetId) return null
+  return { guildId, ownerId, requesterId, targetId }
 }
 
 function createPrivateVoicePublicCustomId({ guildId, ownerId }) {
@@ -141,18 +185,36 @@ function parsePrivateVoicePublicCustomId(customId) {
   return { guildId, ownerId }
 }
 
+function createPrivateVoiceNoticeCustomId(action) {
+  return [PRIVATE_VOICE_NOTICE_PREFIX, action].join(':')
+}
+
+function parsePrivateVoiceNoticeCustomId(customId) {
+  const value = String(customId || '')
+  if (!value.startsWith(`${PRIVATE_VOICE_NOTICE_PREFIX}:`)) return null
+  const action = value.slice(PRIVATE_VOICE_NOTICE_PREFIX.length + 1)
+  if (action !== 'start' && action !== 'invite') return null
+  return { action }
+}
+
 function isPrivateVoiceRequestInteraction(customId) {
   return Boolean(
     parsePrivateVoiceRequestCustomId(customId) ||
     parsePrivateVoicePromptCustomId(customId) ||
-    parsePrivateVoicePublicCustomId(customId)
+    parsePrivateVoiceInvitePromptCustomId(customId) ||
+    parsePrivateVoicePublicCustomId(customId) ||
+    parsePrivateVoiceNoticeCustomId(customId)
   )
 }
 
 module.exports = {
+  createPrivateVoiceInvitePromptCustomId,
+  createPrivateVoiceNoticeRow,
   createPrivateVoiceTargetRows,
   createPrivateVoiceRequestRow,
   isPrivateVoiceRequestInteraction,
+  parsePrivateVoiceInvitePromptCustomId,
+  parsePrivateVoiceNoticeCustomId,
   parsePrivateVoicePublicCustomId,
   parsePrivateVoicePromptCustomId,
   parsePrivateVoiceRequestCustomId
