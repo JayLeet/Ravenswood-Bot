@@ -1,12 +1,12 @@
 const {
-  isStaleMessageError,
-  queuedChannelSend,
-  queuedMessageDelete,
-  queuedMessageEdit
-} = require('../../../utils/discord/messageActions')
-const {
   runRecoverableDiscordAction
 } = require('../../../utils/discord/recoverableAction')
+const {
+  cleanupSetupChannels
+} = require('../../../utils/channelCleanup')
+const {
+  createIdleLobbyWarningMessages
+} = require('./idleLobbyMessages')
 const {
   acknowledgeInteraction,
   updateInteraction
@@ -27,12 +27,11 @@ const {
   isIdleLobbyInteraction
 } = require('./idleLobbyPayloads')
 
-const IDLE_WARNING_FETCH_UNAVAILABLE = Symbol('IDLE_WARNING_FETCH_UNAVAILABLE')
-
 function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStorytellerDashboard, serverConfigs, timers = globalThis }) {
   const watches = new Map()
   const warningMemory = new Map()
   const subsystem = 'IdleLobbyWatch'
+  const warningMessages = createIdleLobbyWarningMessages({ client, serverConfigs, subsystem })
   let registered = false
 
   function registerIdleLobbyWatch() {
@@ -41,14 +40,19 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
 
     gameLifecycle.events.on('GAME_CREATED', ({ game }) => scheduleFirstWarning(game))
     gameLifecycle.events.on('GAME_STARTED', ({ game }) => clearStartedGameIdleWarnings(game))
-    gameLifecycle.events.on('GAME_ENDED', ({ game }) => clearWatch(game?.guildId))
+    gameLifecycle.events.on('GAME_ENDED', ({ game }) => clearEndedGameIdleWarnings(game))
     for (const game of gameLifecycle.gameManager?.games?.values?.() || []) scheduleFirstWarning(game)
     return true
   }
 
   function handleIdleLobbyInteraction(interaction) {
     if (interaction.customId === IDLE_LOBBY_ACTIONS.dismiss) {
-      return queuedMessageDelete(interaction.message, 'Idle warning dismissed')
+      return warningMessages.deleteMessage(
+        interaction.message,
+        interaction.guild?.id,
+        'delete-dismissed-idle-warning',
+        'Idle warning dismissed'
+      )
         .catch(() => acknowledgeInteraction(interaction))
     }
 
@@ -87,7 +91,8 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
     rememberWarnings(watch)
     if (watch.warnings >= MAX_WARNINGS) return sendFinalWarning(guildId)
 
-    const message = await sendOrEditDashboardWarning(guildId, createIdleWarningPayload(watch.storytellerId, watch.warnings))
+    const message = await warningMessages.sendOrEdit(guildId, watch, createIdleWarningPayload(watch.storytellerId, watch.warnings))
+    if (!isActiveIdleWatch(guildId, watch)) return deleteLateIdleWarning(message, guildId)
     if (message) watch.message = message
     watch.timer = timers.setTimeout(() => sendWarning(guildId), RESPONSE_WINDOW_MS)
   }
@@ -98,7 +103,8 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
     if (!watch || !isIdleLobby(game)) return clearWatch(guildId)
 
     rememberWarnings(watch)
-    const message = await sendOrEditDashboardWarning(guildId, createFinalWarningPayload(watch.storytellerId))
+    const message = await warningMessages.sendOrEdit(guildId, watch, createFinalWarningPayload(watch.storytellerId))
+    if (!isActiveIdleWatch(guildId, watch)) return deleteLateIdleWarning(message, guildId)
     if (message) watch.message = message
     gameLifecycle.setCreateGameCooldown?.(guildId, watch.storytellerId, CREATE_GAME_COOLDOWN_MS)
     watch.timer = timers.setTimeout(() => destroyIdleGame(guildId), FINAL_WARNING_MS)
@@ -113,73 +119,22 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
       guildId,
       subsystem
     })
-    await recover('force-end-idle-lobby', () => gameLifecycle.forceEnd(game, {
+    const result = await recover('force-end-idle-lobby', () => gameLifecycle.forceEnd(game, {
       winner: 'none',
       reason: 'Lobby timed out 1 minute after the final idle warning.'
     }, guild), { guildId, subsystem })
-    await recover('refresh-dashboard-after-idle-destroy', () => postOrUpdateStorytellerDashboard(client, guildId), {
-      guildId,
-      subsystem
-    })
-    clearWatch(guildId)
-  }
-
-  async function sendOrEditDashboardWarning(guildId, payload) {
-    const channel = await getStorytellerChannel(guildId)
-    if (!channel) return null
-
-    const watch = watches.get(guildId)
-    const known = await fetchKnownIdleWarningMessage(channel, watch, guildId, subsystem)
-    if (known === IDLE_WARNING_FETCH_UNAVAILABLE) return null
-
-    if (known) {
-      return recover('edit-idle-warning', () => queuedMessageEdit(known, payload), {
+    if (result?.ok && result.ended) {
+      await recover('cleanup-idle-lobby-setup-channels', () => cleanupSetupChannels(client, serverConfigs.get(guildId)), {
         guildId,
-        messageId: known.id,
+        subsystem
+      })
+    } else {
+      await recover('refresh-dashboard-after-idle-destroy', () => postOrUpdateStorytellerDashboard(client, guildId), {
+        guildId,
         subsystem
       })
     }
-    return recover('send-idle-warning', () => queuedChannelSend(channel, payload), {
-      channelId: channel.id,
-      guildId,
-      subsystem
-    })
-  }
-
-  function fetchKnownIdleWarningMessage(channel, watch, guildId, subsystem) {
-    if (!watch?.message?.id) return null
-    if (!channel?.messages?.fetch) {
-      return runRecoverableDiscordAction(
-        'fetch-idle-warning-message-unavailable',
-        () => {
-          throw new Error('Channel message API unavailable')
-        },
-        {
-          context: {
-            channelId: channel?.id,
-            guildId,
-            messageId: watch.message.id
-          },
-          fallback: IDLE_WARNING_FETCH_UNAVAILABLE,
-          subsystem
-        }
-      )
-    }
-    return runRecoverableDiscordAction(
-      'fetch-idle-warning-message',
-      () => channel.messages.fetch(watch.message.id),
-      {
-        context: {
-          channelId: channel.id,
-          guildId,
-          messageId: watch.message.id
-        },
-        fallback: IDLE_WARNING_FETCH_UNAVAILABLE,
-        ignoreError: isStaleMessageError,
-        ignoredFallback: null,
-        subsystem
-      }
-    )
+    clearWatch(guildId)
   }
 
   async function clearStartedGameIdleWarnings(game) {
@@ -188,23 +143,28 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
     clearWarningMemory(game.guildId, game.storytellerId)
     clearWatch(game.guildId)
     if (watch?.message) {
-      await recover(
+      await warningMessages.deleteMessage(
+        watch.message,
+        game.guildId,
         'delete-started-game-idle-warning',
-        () => queuedMessageDelete(watch.message, 'Idle warning cleared after game start'),
-        { guildId: game.guildId, messageId: watch.message.id, subsystem }
+        'Idle warning cleared after game start'
       )
     }
   }
 
-  async function getStorytellerChannel(guildId) {
-    const config = serverConfigs.get(guildId)
-    if (!config?.storytellerChannelId) return null
-    const channel = await recover('fetch-storyteller-channel', () => client.channels.fetch(config.storytellerChannelId), {
-      channelId: config.storytellerChannelId,
-      guildId,
-      subsystem
-    })
-    return channel?.isTextBased?.() ? channel : null
+  async function clearEndedGameIdleWarnings(game) {
+    if (!game?.guildId) return
+    const watch = watches.get(game.guildId)
+    if (game.storytellerId) clearWarningMemory(game.guildId, game.storytellerId)
+    clearWatch(game.guildId)
+    if (!watch?.message) return
+
+    await warningMessages.deleteMessage(
+      watch.message,
+      game.guildId,
+      'delete-ended-game-idle-warning',
+      'Idle warning cleared after game end'
+    )
   }
 
   function rememberWarnings(watch) {
@@ -244,6 +204,19 @@ function createIdleLobbyWatchSystem({ client, gameLifecycle, postOrUpdateStoryte
     const watch = watches.get(guildId)
     if (watch?.timer) timers.clearTimeout(watch.timer)
     watches.delete(guildId)
+  }
+
+  function isActiveIdleWatch(guildId, watch) {
+    return watches.get(guildId) === watch && isIdleLobby(gameLifecycle.get(guildId))
+  }
+
+  function deleteLateIdleWarning(message, guildId) {
+    return warningMessages.deleteMessage(
+      message,
+      guildId,
+      'delete-late-idle-warning',
+      'Discard idle warning after lobby ended'
+    )
   }
 
   return {
