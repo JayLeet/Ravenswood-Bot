@@ -5,8 +5,9 @@ const {
   EmbedBuilder
 } = require('discord.js')
 const {
-  BOT_UPDATE_CHANNEL_NAME
-} = require('./botcChannelNames')
+  createSetupPreviewFields,
+  createSetupPreviewSummaryFields
+} = require('./setupAccessPreview')
 const {
   createSetupDeleteButton
 } = require('./setupDelete')
@@ -17,42 +18,57 @@ const SETUP_ACCESS_MODES = Object.freeze({
   manual: 'manual'
 })
 const SETUP_ACCESS_ACTIONS = Object.freeze({
+  automatic: `${SETUP_ACCESS_PREFIX}automatic`,
   cancel: `${SETUP_ACCESS_PREFIX}cancel`,
+  confirmPrivate: `${SETUP_ACCESS_PREFIX}confirm-private`,
+  confirmPublic: `${SETUP_ACCESS_PREFIX}confirm-public`,
+  details: `${SETUP_ACCESS_PREFIX}details`,
+  detailsBack: `${SETUP_ACCESS_PREFIX}details-back`,
+  manual: `${SETUP_ACCESS_PREFIX}manual`,
   private: `${SETUP_ACCESS_PREFIX}private`,
   public: `${SETUP_ACCESS_PREFIX}public`
 })
+const SETUP_ACCESS_CONFIRM_ACTIONS = Object.freeze({
+  private: 'confirm-private',
+  public: 'confirm-public'
+})
 
-function createSetupAccessChoicePayload(options = {}) {
-  const mode = normalizeSetupAccessMode(options.mode)
-  const manual = mode === SETUP_ACCESS_MODES.manual
+function createSetupModeChoicePayload() {
   return {
     embeds: [new EmbedBuilder()
-      .setTitle(manual ? '🎭 Choose manual setup access' : '🎭 Setup Blood on the Clocktower')
+      .setTitle('\u{1F3AD} Set up BOTC Bot')
       .setDescription([
-        manual
-          ? 'Choose how visible the Ravenswood Bluff setup should be before picking channels.'
-          : 'Choose how visible the Ravenswood Bluff setup should be.',
-        '',
-        '🌍 **Public setup:** everyone can see the public setup channels.',
-        '🩸 **Private setup:** I create or reuse the Blood on the Clocktower role and hide the setup categories from @everyone.'
+        'Choose how I should prepare this server.',
+        'Nothing changes until you confirm the setup path.'
       ].join('\n'))
-      .addFields(createSetupPreviewFields({ mode }))
+      .addFields(
+        {
+          name: '\u{1F6E0}\u{FE0F} Automatic setup',
+          value: 'Recommended. I rebuild the BOTC-managed Ravenswood Bluff setup for you.',
+          inline: false
+        },
+        {
+          name: '\u{1F9ED} Manual setup',
+          value: 'Use this when the server already has a Waiting Room or game-log archive to reuse.',
+          inline: false
+        }
+      )
       .setColor(0x8e44ad)
       .setTimestamp()],
     components: [new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(createSetupAccessActionId('public', mode))
-        .setEmoji('🌍')
-        .setLabel('Public setup')
+        .setCustomId(createSetupAccessActionId('automatic'))
+        .setEmoji('\u{2699}\u{FE0F}')
+        .setLabel('Automatic setup')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setCustomId(createSetupAccessActionId('private', mode))
-        .setEmoji('🩸')
-        .setLabel('Private with BOTC role')
+        .setCustomId(createSetupAccessActionId('manual'))
+        .setEmoji('\u{1F4C2}')
+        .setLabel('Manual setup')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
-        .setCustomId(createSetupAccessActionId('cancel', mode))
-        .setEmoji('✖️')
+        .setCustomId(createSetupAccessActionId('cancel'))
+        .setEmoji('\u{2716}\u{FE0F}')
         .setLabel('Cancel')
         .setStyle(ButtonStyle.Secondary),
       createSetupDeleteButton()
@@ -60,74 +76,162 @@ function createSetupAccessChoicePayload(options = {}) {
   }
 }
 
-function createSetupPreviewFields(options = {}) {
+function createSetupAccessChoicePayload(options = {}) {
   const mode = normalizeSetupAccessMode(options.mode)
-  const importantLines = mode === SETUP_ACCESS_MODES.manual
-    ? [
-        '• 🛠️ Manual setup uses the channels you pick, creates missing setup channels if you choose that option, then creates or reuses the BOTC roles and shared setup channels.',
-        '• 🔒 Private setup hides the setup categories from @everyone; the bot channel is visible only to administrators and the configured bot owner access user, while the BOTC role can see the game lobby/help channel, post-game chat, game-log archive, and Waiting Room.'
-      ]
-    : [
-        '• 🛠️ Setup creates or reuses the BOTC roles and channels listed above.',
-        '• ♻️ Automatic setup resets existing bot-managed Ravenswood Bluff and Reserved Night Area categories before rebuilding them.',
-        '• 🔒 Private setup hides the setup categories from @everyone; the bot channel is visible only to administrators and the configured bot owner access user, while the BOTC role can see the game lobby/help channel, post-game chat, game-log archive, and Waiting Room.'
-      ]
+  const manual = mode === SETUP_ACCESS_MODES.manual
+  return {
+    embeds: [new EmbedBuilder()
+      .setTitle(manual ? '\u{1F9ED} Manual setup visibility' : '\u{1F3AD} Setup visibility')
+      .setDescription([
+        'Choose who can see the BOTC setup after it is created.',
+        'Nothing changes until the final confirmation.',
+      ].join('\n'))
+      .addFields(createSetupPreviewSummaryFields({ mode }))
+      .setColor(0x8e44ad)
+      .setTimestamp()],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('public', mode))
+          .setEmoji('\u{1F30D}')
+          .setLabel('Public setup')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('private', mode))
+          .setEmoji('\u{1F512}')
+          .setLabel('Private with BOTC role')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('details', mode))
+          .setEmoji('\u{1F4CB}')
+          .setLabel('Details')
+          .setStyle(ButtonStyle.Secondary)
+      ),
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('cancel', mode))
+          .setEmoji('\u{2716}\u{FE0F}')
+          .setLabel('Cancel')
+          .setStyle(ButtonStyle.Secondary),
+        createSetupDeleteButton()
+      )
+    ]
+  }
+}
 
-  return [
-    {
-      name: '🧩 Roles',
-      value: [
-        '• 🎭 Player',
-        '• 👁️ Spectator',
-        '• 📖 Storyteller',
-        '• 👁️🔎 Spectator',
-        '• 🩸 Blood on the Clocktower *(private setup only)*'
-      ].join('\n'),
-      inline: false
-    },
-    {
-      name: '🏰 Categories',
-      value: [
-        '• 🏘️ Ravenswood Bluff',
-        '• 🌙 Reserved Night Area / cottage channels'
-      ].join('\n'),
-      inline: false
-    },
-    {
-      name: '💬 Text channels',
-      value: [
-        `• ${BOT_UPDATE_CHANNEL_NAME}`,
-        '• 🎭-game-lobby-help',
-        '• 📖-storyteller-dashboard',
-        '• 📣-live-game-chat',
-        '• 🔎-post-game-chat',
-        '• 👁️-spectator-gallery',
-        '• 🗂️-game-log'
-      ].join('\n'),
-      inline: false
-    },
-    {
-      name: '🔊 Voice channels',
-      value: [
-        '• 🕰️ Waiting Room',
-        '• 🏚️ Storyteller Den',
-        '• 🏛️ Town Square and public side rooms',
-        '• 🗣️ Private conversation creator',
-        '• 🌙 Reserved cottage voice channels'
-      ].join('\n'),
-      inline: false
-    },
-    {
-      name: '⚠️ Important',
-      value: importantLines.join('\n'),
-      inline: false
-    }
-  ]
+function createSetupManagedDetailsPayload(options = {}) {
+  const mode = normalizeSetupAccessMode(options.mode)
+  const manual = mode === SETUP_ACCESS_MODES.manual
+
+  return {
+    embeds: [new EmbedBuilder()
+      .setTitle(manual ? '\u{1F9ED} Manual setup details' : '\u{1F3AD} Automatic setup details')
+      .setDescription([
+        'These are the BOTC-managed pieces I create, reuse, or refresh during this setup path.',
+        'Nothing changes until the final confirmation.'
+      ].join('\n'))
+      .addFields(createSetupPreviewFields({ mode }))
+      .setColor(0x8e44ad)
+      .setTimestamp()],
+    components: [
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('details-back', mode))
+          .setEmoji('\u{2B05}\u{FE0F}')
+          .setLabel('Back')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('public', mode))
+          .setEmoji('\u{1F30D}')
+          .setLabel('Public setup')
+          .setStyle(ButtonStyle.Primary),
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('private', mode))
+          .setEmoji('\u{1F512}')
+          .setLabel('Private with BOTC role')
+          .setStyle(ButtonStyle.Secondary)
+      ),
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(createSetupAccessActionId('cancel', mode))
+          .setEmoji('\u{2716}\u{FE0F}')
+          .setLabel('Cancel')
+          .setStyle(ButtonStyle.Secondary),
+        createSetupDeleteButton()
+      )
+    ]
+  }
+}
+
+function createSetupConfirmPayload(options = {}) {
+  const mode = normalizeSetupAccessMode(options.mode)
+  const manual = mode === SETUP_ACCESS_MODES.manual
+  const privateAccess = options.privateAccess === true
+  const confirmAction = privateAccess
+    ? SETUP_ACCESS_CONFIRM_ACTIONS.private
+    : SETUP_ACCESS_CONFIRM_ACTIONS.public
+
+  return {
+    embeds: [new EmbedBuilder()
+      .setTitle('\u{2705} Confirm setup path')
+      .setDescription(manual
+        ? 'Confirm this setup path before choosing the category, channels, and game-log behavior.'
+        : 'Confirm this setup path before I create or refresh the setup.')
+      .addFields(
+        {
+          name: '\u{1F6E0}\u{FE0F} Setup type',
+          value: manual ? 'Manual setup' : 'Automatic setup',
+          inline: true
+        },
+        {
+          name: '\u{1F441}\u{FE0F} Visibility',
+          value: privateAccess ? 'Private with BOTC role' : 'Public setup',
+          inline: true
+        },
+        {
+          name: '\u{27A1}\u{FE0F} Next step',
+          value: manual
+            ? 'I will open the category, Waiting Room, game-log archive, and save-behavior picker.'
+            : 'I will create or refresh the bot-managed setup.',
+          inline: false
+        }
+      )
+      .setColor(privateAccess ? 0x8e44ad : 0x2ecc71)
+      .setTimestamp()],
+    components: [new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setCustomId(createSetupAccessActionId(confirmAction, mode))
+        .setEmoji(manual ? '\u{1F4C2}' : '\u{2699}\u{FE0F}')
+        .setLabel(manual ? 'Continue to manual setup' : 'Start setup')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(createSetupAccessActionId(manual ? 'manual' : 'automatic'))
+        .setEmoji('\u{2B05}\u{FE0F}')
+        .setLabel('Back')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(createSetupAccessActionId('cancel', mode))
+        .setEmoji('\u{2716}\u{FE0F}')
+        .setLabel('Cancel')
+        .setStyle(ButtonStyle.Secondary),
+      createSetupDeleteButton()
+    )]
+  }
 }
 
 function createSetupAccessActionId(action, mode = SETUP_ACCESS_MODES.auto) {
   const normalized = normalizeSetupAccessMode(mode)
-  if (!['cancel', 'private', 'public'].includes(action)) return SETUP_ACCESS_ACTIONS.cancel
+  if (![
+    'automatic',
+    'cancel',
+    'confirm-private',
+    'confirm-public',
+    'details',
+    'details-back',
+    'manual',
+    'private',
+    'public'
+  ].includes(action)) return SETUP_ACCESS_ACTIONS.cancel
   if (normalized === SETUP_ACCESS_MODES.auto) return `${SETUP_ACCESS_PREFIX}${action}`
   return `${SETUP_ACCESS_PREFIX}${normalized}:${action}`
 }
@@ -137,8 +241,10 @@ function parseSetupAccessChoiceCustomId(customId) {
   const parts = String(customId).slice(SETUP_ACCESS_PREFIX.length).split(':')
   const mode = parts.length === 2 ? normalizeSetupAccessMode(parts[0]) : SETUP_ACCESS_MODES.auto
   const action = parts.length === 2 ? parts[1] : parts[0]
-  if (!['cancel', 'private', 'public'].includes(action)) return null
-  return { action, mode, privateAccess: action === 'private' }
+  if (!['automatic', 'cancel', 'confirm-private', 'confirm-public', 'details', 'details-back', 'manual', 'private', 'public'].includes(action)) return null
+  if (mode === SETUP_ACCESS_MODES.manual && action === 'automatic') return null
+  if (mode === SETUP_ACCESS_MODES.manual && action === 'manual') return null
+  return { action, mode, privateAccess: action === 'private' || action === SETUP_ACCESS_CONFIRM_ACTIONS.private }
 }
 
 function isSetupAccessChoiceInteraction(customId) {
@@ -151,10 +257,15 @@ function normalizeSetupAccessMode(mode) {
 
 module.exports = {
   SETUP_ACCESS_ACTIONS,
+  SETUP_ACCESS_CONFIRM_ACTIONS,
   SETUP_ACCESS_MODES,
   createSetupAccessActionId,
   createSetupAccessChoicePayload,
+  createSetupConfirmPayload,
+  createSetupManagedDetailsPayload,
+  createSetupModeChoicePayload,
   createSetupPreviewFields,
+  createSetupPreviewSummaryFields,
   isSetupAccessChoiceInteraction,
   parseSetupAccessChoiceCustomId
 }
