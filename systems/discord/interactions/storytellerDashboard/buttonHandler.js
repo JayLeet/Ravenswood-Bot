@@ -18,6 +18,11 @@ const {
 } = require('../../phaseChannelPermissions')
 const { createSingleFlight } = require('../../../../utils/discord/singleFlight')
 const { runDashboardButtonFlight } = require('./buttonFlight')
+const {
+  createUnsupportedDashboardControlFailure,
+  normalizeDashboardButtonCustomId,
+  reportUnsupportedDashboardControl
+} = require('./controlAudit')
 const { createAdvanceButtonHandler } = require('./advanceButton')
 const { handleEndRevealChoice } = require('./endRevealChoice')
 const { parseEndRevealCustomId } = require('./endGameReveal')
@@ -90,6 +95,7 @@ function createStorytellerDashboardButtonHandler(deps) {
 
   async function handleStorytellerDashboardButton(interaction) {
     return runDashboardButtonFlight(interaction, dashboardButtonFlight, async () => {
+      normalizeDashboardButtonCustomId(interaction)
       if (interaction.customId === STORYTELLER_DASHBOARD_ACTIONS.quickCustom) return handleQuickCustom(interaction, deps)
 
       const context = await ensureStorytellerDashboardReady(interaction)
@@ -155,11 +161,8 @@ function createStorytellerDashboardButtonHandler(deps) {
         return handleOpenEndReveal(interaction, context, { gameLifecycle, gameManager, getDashboardPlayerLabels, handleDashboardLifecycleResult })
       }
 
-      return editDashboardFailure(interaction, {
-        title: 'Unknown control',
-        message: 'That dashboard button is not recognized.',
-        suggestion: 'Refresh the dashboard and try again.'
-      })
+      reportUnsupportedDashboardControl(interaction, 'button')
+      return editDashboardFailure(interaction, createUnsupportedDashboardControlFailure('button'))
     })
   }
   handleStorytellerDashboardButton.getRuntimeState = (...args) => dashboardButtonFlight.getRuntimeState(...args)
