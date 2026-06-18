@@ -7,6 +7,9 @@ const {
   respondPrivatePayload
 } = require('./feedback')
 const { queuedMessageDelete, queuedMessageEdit } = require('../../../utils/discord/messageActions')
+const {
+  hasInteractionResponse
+} = require('../../../utils/discord/interactionState')
 
 const RUNNING_PROGRESS_FRAMES = [
   '⚪🔘🔘🔘🔘',
@@ -86,10 +89,6 @@ function deleteDiagnostic(handle, reason) {
 
 function formatProgress(step) {
   return RUNNING_PROGRESS_FRAMES[Math.max(0, step) % RUNNING_PROGRESS_FRAMES.length]
-}
-
-function hasInteractionResponse(interaction) {
-  return interaction.deferred === true || interaction.replied === true
 }
 
 function isPrivateReplyInteraction(interaction) {
