@@ -5,6 +5,7 @@ const {
   formatUpdateNoticeSubscriptionField,
   getUpdateNoticeUserId,
   isBotUpdateNotificationInteraction,
+  SUBSCRIPTION_FIELD,
   UPDATE_NOTICE_CHANNEL_BUTTON_ID,
   UPDATE_NOTICE_CHANNEL_SELECT_ID,
   UPDATE_NOTICE_TOGGLE_ID,
@@ -140,9 +141,12 @@ function updateNoticeEmbed(embeds, subscriberIds) {
   const embed = embeds?.[0]?.toJSON?.() || embeds?.[0] || null
   if (!embed) return []
   const fields = Array.isArray(embed.fields) ? embed.fields.slice() : []
-  const index = fields.findIndex(field => field.name === 'Important update pings')
+  const index = fields.findIndex(field =>
+    field.name === SUBSCRIPTION_FIELD ||
+    field.name === 'Important update pings'
+  )
   const field = {
-    name: 'Important update pings',
+    name: SUBSCRIPTION_FIELD,
     value: formatUpdateNoticeSubscriptionField(subscriberIds),
     inline: false
   }
