@@ -2,6 +2,9 @@ const {
   queuedChannelDelete
 } = require('../../../../utils/discord/channelActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   createFakeMember
 } = require('../fakeMembers')
 const {
@@ -147,12 +150,6 @@ async function runLimited(tasks, limit) {
   )
 
   await Promise.all(workers)
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = {
