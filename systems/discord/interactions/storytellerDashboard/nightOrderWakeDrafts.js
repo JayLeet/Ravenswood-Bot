@@ -1,6 +1,7 @@
 const {
   createNightWakeMenuPayload,
   formatNotInPlayInfo,
+  normalizeNotInPlaySelection,
   parseNotInPlaySelection,
   parseWakeSendText
 } = require('../../embeds')
@@ -35,7 +36,7 @@ async function queueDraft(input) {
 
 function queueNotInPlay(input) {
   const { context, entry, interaction, labels, parsed, state, updateNightOrderPayload } = input
-  const selected = parseNotInPlaySelection(parsed.value)
+  const selected = normalizeNotInPlaySelection(context.view, parseNotInPlaySelection(parsed.value))
   const currentDraft = getDraft(input)
   if (selected.length < 3) {
     return updateNightOrderPayload(
