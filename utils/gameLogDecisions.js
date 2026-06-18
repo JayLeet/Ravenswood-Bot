@@ -62,6 +62,7 @@ module.exports = {
   GAME_LOG_ACTIONS,
   createGameLogDecisionRows,
   createResolvedGameLogRows,
+  createGameLogCustomId,
   isGameLogDecisionInteraction,
   parseGameLogCustomId
 }
