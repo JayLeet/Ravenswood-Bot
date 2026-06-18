@@ -11,13 +11,18 @@ const {
 const {
   createBotLogger
 } = require('../../../../utils/logger')
+const {
+  DASHBOARD_SUCCESS_TITLE
+} = require('../feedback')
 
 const DASHBOARD_COMPANION_TITLES = Object.freeze({
   'Night Order Guidance': 'storytellerNightOrderGuidanceMessageId',
   'Nomination Dashboard': 'storytellerNominationDashboardMessageId'
 })
 const DASHBOARD_PANEL_TITLES = new Set([
+  DASHBOARD_SUCCESS_TITLE,
   'Action failed',
+  // Keep legacy dashboard feedback recognizable so old status messages clean up safely.
   'Done',
   'Night Order Guidance',
   'Nomination Dashboard',
