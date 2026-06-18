@@ -1,87 +1,99 @@
+const { ActionRowBuilder, ButtonBuilder, ButtonStyle, ChannelSelectMenuBuilder, ChannelType, EmbedBuilder } = require('discord.js')
+const { createSetupDeleteButton } = require('./setupDelete')
+const { createExistingSetupCategory: findExistingSetupCategory } = require('./setupChannelPickerLookup')
 const {
-  ActionRowBuilder,
-  ButtonBuilder,
-  ButtonStyle,
-  ChannelSelectMenuBuilder,
-  ChannelType,
-  EmbedBuilder
-} = require('discord.js')
-const {
-  AUTO_SETUP_CHANNELS
-} = require('./setupAutoChannels')
-const {
-  AUTO_SETUP_CATEGORY_NAME
-} = require('./botcChannelNames')
-const {
-  createSetupDeleteButton
-} = require('./setupDelete')
+  GAME_LOG_SAVE_MODES,
+  normalizeGameLogSaveMode
+} = require('./gameLogSaveMode')
 
-const SETUP_CHANNEL_PICKER_PREFIX = 'botc:setup-channels'
+const SETUP_CHANNEL_PICKER_PREFIX = 'botc:setup-manual'
 const SETUP_CHANNEL_PICKER_ACCESS = Object.freeze({
   private: 'private',
   public: 'public'
 })
 const SETUP_CHANNEL_PICKER_ACTIONS = Object.freeze({
   cancel: 'cancel',
+  changeCategory: 'change-category',
   confirm: 'confirm',
-  createMissing: 'create-missing',
-  select: 'select'
+  createCategory: 'create-category',
+  logMode: 'log-mode',
+  select: 'select',
+  selectCategory: 'select-category'
 })
+const SETUP_GAME_LOG_SAVE_MODES = GAME_LOG_SAVE_MODES
 const SETUP_CHANNEL_PICKER_KEYS = Object.freeze([
-  'gameChannel',
-  'liveChannel',
-  'spectatorChannel',
-  'storytellerChannel'
+  'waitingRoomVoiceChannel',
+  'gameLogChannel'
 ])
 const SETUP_CHANNEL_PICKER_DETAILS = Object.freeze({
-  gameChannel: {
-    label: 'Game lobby help',
-    createConfig: AUTO_SETUP_CHANNELS.game,
-    placeholder: 'Pick the game lobby help channel'
+  waitingRoomVoiceChannel: {
+    channelTypes: [ChannelType.GuildVoice],
+    fieldName: '\u{1F6AA} Waiting Room',
+    label: 'Waiting Room',
+    placeholder: '\u{1F6AA} Pick the Waiting Room voice channel'
   },
-  liveChannel: {
-    label: 'Live game chat',
-    createConfig: AUTO_SETUP_CHANNELS.live,
-    placeholder: 'Pick the live game chat channel'
-  },
-  spectatorChannel: {
-    label: 'Spectator gallery',
-    createConfig: AUTO_SETUP_CHANNELS.spectator,
-    placeholder: 'Pick the spectator gallery channel'
-  },
-  storytellerChannel: {
-    label: 'Storyteller dashboard',
-    createConfig: AUTO_SETUP_CHANNELS.storyteller,
-    placeholder: 'Pick the Storyteller dashboard channel'
+  gameLogChannel: {
+    channelTypes: [ChannelType.GuildText, ChannelType.GuildAnnouncement],
+    fieldName: '\u{1F4DA} Game-log archive',
+    label: 'Game-log archive',
+    placeholder: '\u{1F4DA} Pick the game-log archive channel'
   }
 })
 
 function createSetupChannelPickerPayload(selection = {}, options = {}) {
   const normalized = normalizeSetupChannelSelection(selection)
-  const missing = getMissingSetupChannelKeys(normalized)
+  const category = options.category || null
+  const gameLogSaveMode = normalizeGameLogSaveMode(options.gameLogSaveMode, null)
   const privateAccess = options.privateAccess === true
   return {
     content: null,
-    embeds: [createSetupChannelPickerEmbed(normalized, missing, options.notice, privateAccess)],
-    components: createSetupChannelPickerRows(normalized, missing, { privateAccess })
+    embeds: [createSetupChannelPickerEmbed(normalized, {
+      category,
+      gameLogSaveMode,
+      notice: options.notice,
+      privateAccess
+    })],
+    components: createSetupChannelPickerRows(normalized, {
+      category,
+      gameLogSaveMode,
+      privateAccess
+    })
   }
 }
 
-function createSetupChannelPickerEmbed(selection, missing, notice = null, privateAccess = false) {
+function createSetupChannelPickerEmbed(selection, options = {}) {
+  const {
+    category = null,
+    gameLogSaveMode = null,
+    notice = null,
+    privateAccess = false
+  } = options
   const embed = new EmbedBuilder()
-    .setTitle('Choose setup channels')
+    .setTitle('\u{1F9ED} Manual setup picker')
     .setDescription([
       `Access choice: **${privateAccess ? 'Private with BOTC role' : 'Public setup'}**.`,
-      'Pick existing text channels for the main BOTC setup areas.',
-      'Use `Create missing channels` if you want me to make any channels that are not selected yet.',
+      category
+        ? 'Pick the required Waiting Room, game-log archive, and game-log save behavior.'
+        : 'Pick the category that should contain the BOTC setup, or create the default Ravenswood Bluff category.',
+      'Waiting Room and game-log archive may be outside the setup category.',
       '`Delete BOTC setup` removes only the setup channels and categories the bot created.'
     ].join('\n'))
+    .addFields({
+      name: '\u{1F3F0} Setup category',
+      value: formatSelectedChannel(category),
+      inline: false
+    })
     .addFields(SETUP_CHANNEL_PICKER_KEYS.map(key => ({
-      name: SETUP_CHANNEL_PICKER_DETAILS[key].label,
+      name: SETUP_CHANNEL_PICKER_DETAILS[key].fieldName,
       value: formatSelectedChannel(selection[key]),
       inline: true
     })))
-    .setColor(missing.length ? 0x3498db : 0x2ecc71)
+    .addFields({
+      name: '\u{1F4BE} Game-log saving',
+      value: formatGameLogSaveMode(gameLogSaveMode),
+      inline: false
+    })
+    .setColor(category ? 0x2ecc71 : 0x3498db)
 
   if (notice) {
     embed.addFields({
@@ -94,32 +106,61 @@ function createSetupChannelPickerEmbed(selection, missing, notice = null, privat
   return embed
 }
 
-function createSetupChannelPickerRows(selection, missing, options = {}) {
+function createSetupChannelPickerRows(selection = {}, options = {}) {
+  if (!options.category) {
+    return [
+      new ActionRowBuilder().addComponents(
+        new ChannelSelectMenuBuilder()
+          .setCustomId(createSetupChannelCategorySelectId(options))
+          .setPlaceholder('\u{1F3F0} Pick the setup category')
+          .setChannelTypes(ChannelType.GuildCategory)
+          .setMinValues(1)
+          .setMaxValues(1)
+      ),
+      new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.createCategory, options))
+          .setEmoji('\u{1F3F0}')
+          .setLabel('Create Ravenswood Bluff')
+          .setStyle(ButtonStyle.Secondary),
+        new ButtonBuilder()
+          .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.cancel, options))
+          .setEmoji('\u{2716}\u{FE0F}')
+          .setLabel('Cancel')
+          .setStyle(ButtonStyle.Secondary),
+        createSetupDeleteButton()
+      )
+    ]
+  }
+
   const selectRows = SETUP_CHANNEL_PICKER_KEYS.map(key =>
     new ActionRowBuilder().addComponents(
       new ChannelSelectMenuBuilder()
         .setCustomId(createSetupChannelSelectId(key, options))
         .setPlaceholder(SETUP_CHANNEL_PICKER_DETAILS[key].placeholder)
-        .setChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+        .setChannelTypes(...SETUP_CHANNEL_PICKER_DETAILS[key].channelTypes)
         .setMinValues(1)
         .setMaxValues(1)
     )
   )
 
   return selectRows.concat(
+    createGameLogSaveModeRow(options),
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.createMissing, options))
-        .setLabel('Create missing channels')
-        .setStyle(ButtonStyle.Secondary)
-        .setDisabled(missing.length === 0),
-      new ButtonBuilder()
         .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.confirm, options))
+        .setEmoji('\u{2705}')
         .setLabel('Continue setup')
         .setStyle(ButtonStyle.Primary)
-        .setDisabled(missing.length > 0),
+        .setDisabled(!isSetupManualReady(selection, options.gameLogSaveMode)),
+      new ButtonBuilder()
+        .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.changeCategory, options))
+        .setEmoji('\u{1F504}')
+        .setLabel('Change category')
+        .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(createSetupChannelActionId(SETUP_CHANNEL_PICKER_ACTIONS.cancel, options))
+        .setEmoji('\u{2716}\u{FE0F}')
         .setLabel('Cancel')
         .setStyle(ButtonStyle.Secondary),
       createSetupDeleteButton()
@@ -127,12 +168,36 @@ function createSetupChannelPickerRows(selection, missing, options = {}) {
   )
 }
 
+function createGameLogSaveModeRow(options = {}) {
+  const selected = normalizeGameLogSaveMode(options.gameLogSaveMode, null)
+  return new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(createSetupGameLogSaveModeActionId(SETUP_GAME_LOG_SAVE_MODES.auto, options))
+      .setEmoji('\u{1F4E4}')
+      .setLabel('Auto-save game logs')
+      .setStyle(selected === SETUP_GAME_LOG_SAVE_MODES.auto ? ButtonStyle.Success : ButtonStyle.Secondary),
+    new ButtonBuilder()
+      .setCustomId(createSetupGameLogSaveModeActionId(SETUP_GAME_LOG_SAVE_MODES.manual, options))
+      .setEmoji('\u{1F4BE}')
+      .setLabel('Ask before saving')
+      .setStyle(selected === SETUP_GAME_LOG_SAVE_MODES.manual ? ButtonStyle.Success : ButtonStyle.Secondary)
+  )
+}
+
 function createSetupChannelSelectId(key, options = {}) {
   return createSetupChannelCustomId(SETUP_CHANNEL_PICKER_ACTIONS.select, key, options)
 }
 
+function createSetupChannelCategorySelectId(options = {}) {
+  return createSetupChannelCustomId(SETUP_CHANNEL_PICKER_ACTIONS.selectCategory, null, options)
+}
+
 function createSetupChannelActionId(action, options = {}) {
   return createSetupChannelCustomId(action, null, options)
+}
+
+function createSetupGameLogSaveModeActionId(mode, options = {}) {
+  return createSetupChannelCustomId(SETUP_CHANNEL_PICKER_ACTIONS.logMode, mode, options)
 }
 
 function createSetupChannelCustomId(action, key = null, options = {}) {
@@ -147,7 +212,7 @@ function createSetupChannelCustomId(action, key = null, options = {}) {
 
 function parseSetupChannelsCustomId(customId) {
   const parts = String(customId || '').split(':')
-  if (parts[0] !== 'botc' || parts[1] !== 'setup-channels') return null
+  if (parts[0] !== 'botc' || parts[1] !== 'setup-manual') return null
   let index = 2
   let privateAccess = false
   let accessSpecified = false
@@ -156,10 +221,15 @@ function parseSetupChannelsCustomId(customId) {
     privateAccess = parts[index] === SETUP_CHANNEL_PICKER_ACCESS.private
     index += 1
   }
+
   const action = parts[index] || null
-  const key = action === SETUP_CHANNEL_PICKER_ACTIONS.select ? parts[index + 1] : null
+  const key = [
+    SETUP_CHANNEL_PICKER_ACTIONS.logMode,
+    SETUP_CHANNEL_PICKER_ACTIONS.select
+  ].includes(action) ? parts[index + 1] : null
   if (!Object.values(SETUP_CHANNEL_PICKER_ACTIONS).includes(action)) return null
-  if (key && !SETUP_CHANNEL_PICKER_KEYS.includes(key)) return null
+  if (action === SETUP_CHANNEL_PICKER_ACTIONS.select && !SETUP_CHANNEL_PICKER_KEYS.includes(key)) return null
+  if (action === SETUP_CHANNEL_PICKER_ACTIONS.logMode && !Object.values(SETUP_GAME_LOG_SAVE_MODES).includes(key)) return null
   return { action, key, accessSpecified, privateAccess }
 }
 
@@ -171,20 +241,12 @@ function normalizeSetupChannelSelection(selection = {}) {
   return Object.fromEntries(SETUP_CHANNEL_PICKER_KEYS.map(key => [key, selection[key] || null]))
 }
 
-function createExistingSetupChannelSelection(guild, parentId = null) {
-  return Object.fromEntries(SETUP_CHANNEL_PICKER_KEYS.map(key => [
-    key,
-    findExistingSetupChannel(guild, key, parentId)
-  ]))
+function createExistingSetupChannelSelection() {
+  return normalizeSetupChannelSelection()
 }
 
-function fillMissingSetupChannelSelection(selection = {}, guild, parentId = null) {
-  const normalized = normalizeSetupChannelSelection(selection)
-  const existing = createExistingSetupChannelSelection(guild, parentId)
-  for (const key of SETUP_CHANNEL_PICKER_KEYS) {
-    if (!normalized[key] && existing[key]) normalized[key] = existing[key]
-  }
-  return normalized
+function createExistingSetupCategory(guild) {
+  return findExistingSetupCategory(guild)
 }
 
 function getMissingSetupChannelKeys(selection = {}) {
@@ -192,8 +254,19 @@ function getMissingSetupChannelKeys(selection = {}) {
   return SETUP_CHANNEL_PICKER_KEYS.filter(key => !normalized[key])
 }
 
+function isSetupManualReady(selection = {}, gameLogSaveMode = null) {
+  return getMissingSetupChannelKeys(selection).length === 0 &&
+    Boolean(normalizeGameLogSaveMode(gameLogSaveMode, null))
+}
+
 function formatSelectedChannel(channel) {
   return channel?.id ? `<#${channel.id}>` : 'Not selected'
+}
+
+function formatGameLogSaveMode(mode) {
+  if (mode === SETUP_GAME_LOG_SAVE_MODES.auto) return 'Auto-save when the game ends.\nThe log posts to the selected archive.'
+  if (mode === SETUP_GAME_LOG_SAVE_MODES.manual) return 'Ask before saving.\nThe Storyteller chooses Save to Game Log or Discard Game History.'
+  return 'Not selected'
 }
 
 function getSetupChannelAccessSegment(options = {}) {
@@ -202,52 +275,24 @@ function getSetupChannelAccessSegment(options = {}) {
   return null
 }
 
-function findExistingSetupChannel(guild, key, parentId = null) {
-  const config = SETUP_CHANNEL_PICKER_DETAILS[key]?.createConfig
-  if (!config) return null
-
-  const channels = getCachedGuildChannels(guild)
-  const setupParentId = parentId || findAutoSetupCategory(channels)?.id || null
-  return channels.find(channel =>
-    channel?.name === config.name &&
-    isTextSetupChannel(channel) &&
-    (!setupParentId || String(channel.parentId || channel.parent?.id || '') === String(setupParentId))
-  ) || null
-}
-
-function findAutoSetupCategory(channels) {
-  return channels.find(channel =>
-    channel?.type === ChannelType.GuildCategory &&
-    channel?.name === AUTO_SETUP_CATEGORY_NAME
-  ) || null
-}
-
-function isTextSetupChannel(channel) {
-  return channel?.type === ChannelType.GuildText || channel?.type === ChannelType.GuildAnnouncement
-}
-
-function getCachedGuildChannels(guild) {
-  const cache = guild?.channels?.cache
-  if (!cache) return []
-  if (Array.isArray(cache)) return cache
-  if (typeof cache.values === 'function') return [...cache.values()]
-  if (typeof cache[Symbol.iterator] === 'function') return [...cache]
-  return Object.values(cache)
-}
-
 module.exports = {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_ACCESS,
   SETUP_CHANNEL_PICKER_DETAILS,
   SETUP_CHANNEL_PICKER_KEYS,
   SETUP_CHANNEL_PICKER_PREFIX,
+  SETUP_GAME_LOG_SAVE_MODES,
   createExistingSetupChannelSelection,
+  createExistingSetupCategory,
   createSetupChannelActionId,
+  createSetupChannelCategorySelectId,
   createSetupChannelPickerPayload,
   createSetupChannelSelectId,
-  fillMissingSetupChannelSelection,
+  createSetupGameLogSaveModeActionId,
   getMissingSetupChannelKeys,
   isSetupChannelsInteraction,
+  isSetupManualReady,
+  normalizeGameLogSaveMode,
   normalizeSetupChannelSelection,
   parseSetupChannelsCustomId
 }
