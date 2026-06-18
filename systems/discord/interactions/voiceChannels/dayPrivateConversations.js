@@ -36,6 +36,9 @@ const {
 const {
   createBotLogger
 } = require('../../../../utils/logger')
+const {
+  getDiscordErrorReason
+} = require('../../../../utils/discord/errorReason')
 
 const log = createBotLogger({ subsystem: 'DayPrivateConversations' })
 
@@ -262,10 +265,6 @@ function createPlayerRoomWarning(guild, playerId, err) {
     `[BOTC] Could not create private conversation voice channel for ${playerId} in ${guild?.id}:`,
     `${getDiscordErrorReason(err)}.`
   ].join(' ')
-}
-
-function getDiscordErrorReason(err) {
-  return err?.message || err?.rawError?.message || String(err || 'unknown error')
 }
 
 function createPlayerLabel(game, view, playerId, discordMember = null) {
