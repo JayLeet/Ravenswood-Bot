@@ -34,6 +34,10 @@ const {
   clearPlayerMadeVoiceState
 } = require('./dayPrivateConversationCleanup')
 const {
+  createDiscordPermissionAccess,
+  createPlayerLabel
+} = require('./dayPrivateLabels')
+const {
   createBotLogger
 } = require('../../../../utils/logger')
 const {
@@ -132,7 +136,12 @@ async function ensurePlayerPrivateConversationVoiceChannel({
     invitedPlayerIds,
     publicRoom
   })
-  const overwrites = createPlayerPrivateVoiceChannelPermissions(guild, guild.client.user.id, roleIds, access)
+  const overwrites = createPlayerPrivateVoiceChannelPermissions(
+    guild,
+    guild.client.user.id,
+    roleIds,
+    createDiscordPermissionAccess(game, gameLifecycle, access)
+  )
 
   if (existing) {
     await refreshVoiceChannel(existing, name, parent, overwrites, 'BOTC player-made private conversation voice channel update')
@@ -267,21 +276,10 @@ function createPlayerRoomWarning(guild, playerId, err) {
   ].join(' ')
 }
 
-function createPlayerLabel(game, view, playerId, discordMember = null) {
-  return discordMember?.displayName ||
-    discordMember?.nickname ||
-    discordMember?.user?.globalName ||
-    discordMember?.user?.displayName ||
-    discordMember?.user?.username ||
-    view?.users?.displayNames?.[playerId] ||
-    game.users?.[playerId]?.displayName ||
-    game.users?.[playerId]?.username ||
-    `Player ${String(playerId).slice(-4)}`
-}
-
 module.exports = {
   canCreatePlayerMadeVoiceChannel,
   cleanupPlayerMadeVoiceChannels,
+  createDiscordPermissionAccess,
   createCreatorChannelWarning,
   createPlayerLabel,
   createPlayerRoomWarning,
