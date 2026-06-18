@@ -13,10 +13,10 @@ const MODAL_OPEN_BUTTON_PREFIXES = [
   'botc:storyteller:timer'
 ]
 
-function createDiagnosticContext(interaction, serverConfigs) {
+function createDiagnosticContext(interaction, serverConfigs, gameLifecycle = null) {
   if (!interaction?.guild?.id || interaction.isAutocomplete?.()) return null
   if (isModalOpenButton(interaction)) return null
-  if (!hasAdministratorOrGlobalCommandAccess(interaction)) return null
+  if (!hasAdministratorOrGlobalCommandAccess(interaction) && !isCurrentStoryteller(interaction, gameLifecycle)) return null
 
   const serverConfig = serverConfigs?.get?.(interaction.guild.id)
   const diagnosticChannelIds = [
@@ -43,6 +43,14 @@ function createDiagnosticPayload({
   reason = null,
   title
 }) {
+  if (progressStep !== null && !error) {
+    return {
+      embeds: [
+        createSystemEmbed('Loading...', formatProgress(progressStep), color)
+      ]
+    }
+  }
+
   const embed = createSystemEmbed(title, description, color)
     .addFields(
       { name: 'Action', value: limitField(context.action), inline: false },
@@ -105,6 +113,12 @@ function limitField(value) {
 
 function formatElapsedSeconds(elapsedMs) {
   return Math.max(0, Math.ceil(Number(elapsedMs) / 1000) || 0)
+}
+
+function isCurrentStoryteller(interaction, gameLifecycle) {
+  const game = gameLifecycle?.get?.(interaction.guild.id)
+  if (!game) return false
+  return gameLifecycle.isStoryteller?.(game, interaction.member?.id || interaction.user?.id) === true
 }
 
 module.exports = {
