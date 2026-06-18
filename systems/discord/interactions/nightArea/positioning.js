@@ -6,6 +6,9 @@ const {
 const {
   createBotLogger
 } = require('../../../../utils/logger')
+const {
+  getDiscordErrorReason
+} = require('../../../../utils/discord/errorReason')
 
 const log = createBotLogger({ subsystem: 'NightAreaPositioning' })
 
@@ -219,10 +222,6 @@ function createChannelPlacementHint(reason = '') {
   }
 
   return 'check Manage Channels permission and category overwrites for the bot.'
-}
-
-function getDiscordErrorReason(err) {
-  return err?.message || err?.rawError?.message || String(err || 'unknown error')
 }
 
 module.exports = {
