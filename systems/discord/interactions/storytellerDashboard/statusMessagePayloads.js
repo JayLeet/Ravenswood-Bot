@@ -6,13 +6,18 @@ const {
 const {
   STORYTELLER_DASHBOARD_ACTIONS
 } = require('../../embeds')
+const {
+  DASHBOARD_SUCCESS_TITLE
+} = require('../feedback')
 
 const DASHBOARD_FEEDBACK_TITLES = new Set([
   'Action delayed',
+  DASHBOARD_SUCCESS_TITLE,
   'Action failed',
   'Action finished',
   'Action needs attention',
   'Action still running',
+  // Keep legacy dashboard feedback recognizable so old status messages clean up safely.
   'Done'
 ])
 
