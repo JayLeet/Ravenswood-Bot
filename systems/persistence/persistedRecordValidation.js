@@ -21,6 +21,9 @@ const {
   isValidVersion
 } = require('../../utils/updateLog')
 const {
+  GAME_LOG_SAVE_MODES
+} = require('../../utils/gameLogSaveMode')
+const {
   ACHIEVEMENT_NUMBER_FIELDS,
   GAME_ARRAY_FIELDS,
   GAME_NULLABLE_OBJECT_FIELDS,
@@ -66,6 +69,7 @@ function validatePersistedGame(game, { guildId, logger = null } = {}) {
     recordType: 'game'
   })
   coerceArrayFields(next, GAME_ARRAY_FIELDS, { guildId, logger, recordType: 'game' })
+  coerceCountFields(next, ['chatMessagesDropped'], { guildId, logger, recordType: 'game' })
   coerceObjectFields(next, GAME_OBJECT_FIELDS, { guildId, logger, recordType: 'game' })
   coerceNullableObjectFields(next, GAME_NULLABLE_OBJECT_FIELDS, { guildId, logger, recordType: 'game' })
   coerceNestedObjectField(next, 'executionShields', 'foolSpent', { guildId, logger, recordType: 'game' })
@@ -103,6 +107,13 @@ function validatePersistedServerConfig(config, { guildId, logger = null } = {}) 
     .filter(Boolean))]
   coerceNullableStringFields(next, ['firstJoinSetupNoticeSentAt', 'setupCleanupFallbackMode', 'setupCleanupFallbackStartedAt'], { guildId, logger, recordType: 'server-config' })
   coerceBooleanField(next, 'privateAccess', false, { guildId, logger, recordType: 'server-config' })
+  coerceStringEnumField(
+    next,
+    'gameLogSaveMode',
+    Object.values(GAME_LOG_SAVE_MODES),
+    GAME_LOG_SAVE_MODES.manual,
+    { guildId, logger, recordType: 'server-config' }
+  )
   if (next.lastBotUpdateNoticeVersion !== undefined && next.lastBotUpdateNoticeVersion !== null) {
     const version = String(next.lastBotUpdateNoticeVersion).trim()
     if (typeof next.lastBotUpdateNoticeVersion !== 'string' || !isValidVersion(version)) {
@@ -167,12 +178,40 @@ function validatePendingGameSummary(summary, { guildId, logger = null } = {}) {
     next.guildId = guildId
   }
 
-  coerceArrayFields(next, ['alivePlayers', 'deadPlayers', 'executionHistory', 'nominations', 'players', 'reminders', 'spectators'], {
+  coerceArrayFields(next, [
+    'alivePlayers',
+    'chatMessages',
+    'deadPlayers',
+    'executionHistory',
+    'messages',
+    'nightActions',
+    'nominations',
+    'players',
+    'reminders',
+    'spectators',
+    'votes'
+  ], {
     guildId,
     logger,
     recordType: 'pending-summary'
   })
-  coerceObjectFields(next, ['deadVotes', 'nightVoiceChannels', 'roleCategories', 'roles', 'stats'], {
+  coerceObjectFields(next, [
+    'deadVotes',
+    'demonNotInPlayRoles',
+    'displayNames',
+    'nightVoiceChannels',
+    'roleCategories',
+    'roleHistory',
+    'roles',
+    'shownRoles',
+    'stats',
+    'statusEffects'
+  ], {
+    guildId,
+    logger,
+    recordType: 'pending-summary'
+  })
+  coerceCountFields(next, ['chatMessagesDropped'], {
     guildId,
     logger,
     recordType: 'pending-summary'
