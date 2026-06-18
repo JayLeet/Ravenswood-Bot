@@ -82,6 +82,21 @@ function deleteExpiredPendingGameSummaries(now = Date.now()) {
   }
 }
 
+function deletePendingGameSummariesNotInGuilds(activeGuildIds = []) {
+  const guildIds = [...new Set(activeGuildIds.filter(Boolean).map(String))]
+
+  try {
+    const sql = guildIds.length
+      ? `DELETE FROM pending_game_summaries WHERE guild_id NOT IN (${guildIds.map(() => '?').join(', ')})`
+      : 'DELETE FROM pending_game_summaries'
+    const result = getDatabase().prepare(sql).run(...guildIds)
+    return result.changes || 0
+  } catch (err) {
+    log.error('prune-left-guild-pending-summaries', err, { guildCount: guildIds.length })
+    return 0
+  }
+}
+
 function parseJson(raw) {
   try {
     return JSON.parse(raw)
@@ -94,6 +109,7 @@ function parseJson(raw) {
 module.exports = {
   DEFAULT_PENDING_SUMMARY_TTL_MS,
   deleteExpiredPendingGameSummaries,
+  deletePendingGameSummariesNotInGuilds,
   deletePendingGameSummary,
   loadPendingGameSummary,
   savePendingGameSummary
