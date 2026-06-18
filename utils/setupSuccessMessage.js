@@ -1,4 +1,7 @@
 function createSetupSuccessMessage(setupResult, channels) {
+  const saveModeLine = setupResult.gameLogSaveMode === 'auto'
+    ? '- Game logs will auto-save when each game ends.'
+    : '- Game logs will ask to Save or Discard after each game.'
   const prepared = [
     setupResult.autoCreated ? '- Ravenswood Bluff setup channels were created or reused.' : null,
     setupResult.privateAccess && setupResult.botcAccessRole
@@ -8,7 +11,8 @@ function createSetupSuccessMessage(setupResult, channels) {
     setupResult.sharedVoiceChannels?.waitingRoomVoiceChannel
       ? `- Waiting Room voice is ready at <#${setupResult.sharedVoiceChannels.waitingRoomVoiceChannel.id}>.`
       : null,
-    setupResult.cottageCategory ? `- Reserved cottage channels were prepared in ${setupResult.cottageCategory.name}.` : null
+    setupResult.cottageCategory ? `- Reserved cottage channels were prepared in ${setupResult.cottageCategory.name}.` : null,
+    saveModeLine
   ].filter(Boolean)
 
   return [
