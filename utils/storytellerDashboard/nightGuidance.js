@@ -23,6 +23,12 @@ const {
   createAlejoRulePromptLines,
   createAlejoRuleRows
 } = require('./alejoRules')
+const {
+  createCurrentInstructionText
+} = require('./nightGuidanceInstructions')
+const {
+  truncate
+} = require('./formatters')
 
 function createNightOrderGuidancePayload(view, playerLabels = {}, options = {}) {
   if (view.state !== 'in-game' || view.phase !== 'night') return null
@@ -34,7 +40,7 @@ function createNightOrderGuidancePayload(view, playerLabels = {}, options = {}) 
 
   const embed = new EmbedBuilder()
     .setTitle('Night Order Guidance')
-    .setColor(0x2c3e50)
+    .setColor(0x34495e)
     .setDescription(createNightOrderDescription(view, entries, current, currentIndex, started))
     .setTimestamp()
 
@@ -50,28 +56,28 @@ function createNightOrderDescription(view, entries, current, currentIndex, start
   const nightLabel = getNightLabel(view)
   if (!started) {
     return [
-      `**${nightLabel}**`,
-      'Start the Night order?',
+      `**🌙 ${nightLabel}**`,
+      'Start the Night Order?',
       ...createAlejoRulePromptLines(view),
       '',
       isClocktowerLiveMode(view)
         ? 'This guide shows each assigned player, role, ability, and who is next. It does not send BOTC Bot night-action prompts in Clocktower.live mode.'
-        : 'This guide is only shown during night. It should be used to wake players, send night info, move to voice cottages, and track replies as they come in.'
+        : 'Use this to handle each character in order and send only the information their role should receive.'
     ].join('\n')
   }
 
   if (!current) {
     return [
-      `**${nightLabel} complete**`,
+      `**✅ ${nightLabel} complete**`,
       'No more players currently need night-order attention.',
       'Check any Storyteller-only exceptions, then advance to day when ready.'
     ].join('\n')
   }
 
   return [
-    `**${nightLabel}**`,
-    `Current: ${current.playerLabel} (${current.roleName})`,
-    `Order: ${currentIndex + 1}/${entries.length}`,
+    `**🌙 ${nightLabel}**`,
+    `**👤 Current:** ${current.playerLabel} (${current.roleName})`,
+    `**🔢 Order:** ${currentIndex + 1}/${entries.length}`,
     getNextEntryText(entries, currentIndex),
     isClocktowerLiveMode(view) ? null : formatActionStatus(current.action)
   ].filter(Boolean).join('\n')
@@ -90,14 +96,14 @@ function addCurrentPlayerFields(embed, current, view, entries, currentIndex) {
   addWarningField(embed, current)
   addReminderField(embed, current)
   embed.addFields({
-    name: 'What to do',
+    name: '📋 What to do',
     value: createCurrentInstructionText(current),
     inline: false
   })
 
   if (current.response) {
     embed.addFields({
-      name: 'Submitted response',
+      name: '💬 Submitted response',
       value: truncate(current.response, 900),
       inline: false
     })
@@ -105,7 +111,7 @@ function addCurrentPlayerFields(embed, current, view, entries, currentIndex) {
 
   if (current.details && current.details !== current.prompt) {
     embed.addFields({
-      name: 'Role info',
+      name: '📖 Role info',
       value: truncate(current.details, 900),
       inline: false
     })
@@ -125,7 +131,7 @@ function addWarningField(embed, current) {
 function addReminderField(embed, current) {
   const tokens = current.reminders?.tokens || []
   embed.addFields({
-    name: 'Reminder tokens on this player',
+    name: '🏷️ Reminder tokens',
     value: tokens.length ? truncate(tokens.join('\n'), 900) : 'None',
     inline: false
   })
@@ -189,50 +195,14 @@ function normalizeCurrentIndex(index, entries) {
 
 function getNextEntryText(entries, currentIndex) {
   const next = entries[currentIndex + 1]
-  return next ? `Next: ${next.playerLabel} (${next.roleName})` : 'Next: none'
+  return next ? `**➡️ Next:** ${next.playerLabel} (${next.roleName})` : '**➡️ Next:** none'
 }
 
 function formatActionStatus(action) {
-  if (isResolvedFirstNightInfoAction(action)) return 'First-night information was already sent.'
-  if (action.status === 'submitted') return 'Player replied. Review their response before moving on.'
-  if (action.status === 'resolved') return 'Resolved.'
-  return 'Ready to wake and prompt.'
-}
-
-function createCurrentInstructionText(current) {
-  if (isResolvedFirstNightInfoAction(current.action)) {
-    return [
-      'This first-night information has already been sent.',
-      'Use Back or Next Player to continue reviewing the night order.'
-    ].join('\n')
-  }
-
-  if (current.roleTeam === 'demon' && Number(current.action?.day || 1) <= 1) {
-    return compactLines([
-      `Wake ${current.playerLabel}.`,
-      'Press Wake, then More Info, then These characters are not in play.',
-      'Choose exactly 3 good characters that are not in play, then Submit.',
-      'This sends the bluff list to the Demon.',
-      'Use Move only when you want to move to their voice channel.'
-    ]).join('\n')
-  }
-
-  return compactLines([
-    `Wake ${current.playerLabel}.`,
-    'Use Wake to choose night-info buttons to send.',
-    'Use Move only when you want to move to their voice channel.',
-    'Watch for replies such as Got it, a character, a player, or other night info.'
-  ]).join('\n')
-}
-
-function compactLines(lines) {
-  return lines.filter(Boolean)
-}
-
-function truncate(value, maxLength) {
-  const text = String(value || '')
-  if (text.length <= maxLength) return text || 'None'
-  return `${text.slice(0, maxLength - 3)}...`
+  if (isResolvedFirstNightInfoAction(action)) return null
+  if (action.status === 'submitted') return '**💬 Status:** Player replied. Review their response before moving on.'
+  if (action.status === 'resolved') return '**✅ Status:** Resolved.'
+  return '**🟢 Status:** Ready.'
 }
 
 module.exports = {
