@@ -26,6 +26,7 @@ const { createForcedNominationButtonHandler } = require('./forcedNominationButto
 const { createGongButtonHandler } = require('./gongButton')
 const { createGrimRevealButtonHandler } = require('./grimRevealButton')
 const { createGrimoireButtonHandler } = require('./grimoireButton')
+const { handleOpenEndReveal } = require('./endRevealOpen')
 const { createMoveButtonHandler } = require('./moveButtons')
 const { createNightOrderButtonHandler } = require('./nightOrderButtons')
 const { createNominationRequestButtonHandler } = require('./nominationRequestButton')
@@ -33,11 +34,6 @@ const { createPlayerControlButtonHandler } = require('./playerControlButtons')
 const { handleRefresh } = require('./refreshButton')
 const { sendQuickInfoResponse } = require('./quickInfo')
 const { createRandomRoleButtonHandler } = require('./randomRoleButton')
-const {
-  editRevealBoardFailure,
-  postGrimRevealBoard,
-  rollbackUnpostedReveal
-} = require('./revealBoardPosting')
 const { createRoleButtonHandler } = require('./roleButtons')
 const { createVotingControlButtonHandler } = require('./votingControlButtons')
 const { formatVotingLogForDay } = require('../../../../utils/storytellerDashboard/votingLogs')
@@ -47,6 +43,7 @@ const RESUME_BUTTON_ID = 'botc:storyteller:resume'
 function createStorytellerDashboardButtonHandler(deps) {
   const {
     dashboardState,
+    deletePendingGameSummary,
     ensureStorytellerDashboardReady,
     getDashboardPlayerLabels,
     gameLifecycle,
@@ -62,7 +59,12 @@ function createStorytellerDashboardButtonHandler(deps) {
   const handleAdvanceButton = createAdvanceButtonHandler({ gameLifecycle, handleDashboardLifecycleResult })
   const handleForcedNominationButton = createForcedNominationButtonHandler({ dashboardState, gameLifecycle, getDashboardPlayerLabels, handleDashboardLifecycleResult })
   const handleGongButton = createGongButtonHandler({ gameLifecycle })
-  const handleGrimRevealButton = createGrimRevealButtonHandler({ gameLifecycle, getDashboardPlayerLabels })
+  const handleGrimRevealButton = createGrimRevealButtonHandler({
+    deletePendingGameSummary,
+    gameLifecycle,
+    getDashboardPlayerLabels,
+    serverConfigs
+  })
   const handleGrimoireButton = createGrimoireButtonHandler({
     clearDashboardStatus,
     gameLifecycle,
@@ -112,6 +114,8 @@ function createStorytellerDashboardButtonHandler(deps) {
           gameLifecycle,
           gameManager,
           getDashboardPlayerLabels,
+          deletePendingGameSummary,
+          serverConfigs,
           setPostGameStorytellerView
         })
       }
@@ -258,31 +262,6 @@ async function handleResume(interaction, context, deps) {
     result,
     result.ok ? 'The paused game was resumed.' : null
   )
-}
-
-async function handleOpenEndReveal(interaction, context, deps) {
-  const { gameLifecycle, gameManager, getDashboardPlayerLabels, handleDashboardLifecycleResult } = deps
-  const result = await gameLifecycle.openEndReveal(interaction.guild.id, interaction.member)
-  if (!result.ok) return editDashboardLifecycleFailure(interaction, result)
-  if (result.ended) return handleDashboardLifecycleResult(interaction, context, result)
-
-  const labels = await getDashboardPlayerLabels(interaction.client, interaction.guild.id, result.view)
-  const posted = await postGrimRevealBoard({
-    failureMessage: 'The game-ending reveal was prepared, but I could not post the public Grim reveal board.',
-    failureSuggestion: 'Check my post-game channel permissions, then press End Game again.',
-    gameManager,
-    interaction,
-    labels,
-    revealId: result.reveal.id,
-    serverConfig: context.serverConfig,
-    view: result.view
-  })
-  if (!posted.ok) {
-    await rollbackUnpostedReveal(gameLifecycle, interaction, result.reveal.id)
-    return editRevealBoardFailure(interaction, posted)
-  }
-
-  return editDashboardSuccess(interaction, 'Public Grim reveal board posted. Reveal at least one role before choosing a winner.')
 }
 
 module.exports = {
