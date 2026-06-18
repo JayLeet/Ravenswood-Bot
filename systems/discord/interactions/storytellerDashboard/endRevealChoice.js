@@ -14,15 +14,14 @@ const {
   replyPrivatePayload
 } = require('../feedback')
 const {
-  cleanupPostGameChannelMessages,
   cleanupSetupChannels
 } = require('../../../../utils/channelCleanup')
 const {
   queuedMessageEdit
 } = require('../../../../utils/discord/messageActions')
 const {
-  createGameLogDecisionRows
-} = require('../../../../utils/gameLogDecisions')
+  createEndGameLogComponents
+} = require('../../../../utils/gameLogEndResult')
 const {
   WINNER_OPTIONS,
   createEndRevealCancelledPayload,
@@ -78,9 +77,11 @@ async function handleEndRevealChoice(interaction, context, reveal, deps) {
 
   return chooseWinner(interaction, context, revealId, winnerChoice, {
     allowForcedOverride: Boolean(override),
+    deletePendingGameSummary: deps.deletePendingGameSummary,
     gameLifecycle,
     getDashboardPlayerLabels,
-    revealWinningTeamFn
+    revealWinningTeamFn,
+    serverConfigs: deps.serverConfigs
   })
 }
 
@@ -116,11 +117,18 @@ async function chooseWinner(interaction, context, revealId, winnerChoice, deps) 
   if (result.cleanupSetupChannels) await cleanupSetupChannels(interaction.client, context.serverConfig)
 
   const revealChannel = await getPostGameRevealChannel(interaction.client, context.serverConfig)
-  if (revealChannel?.id === context.serverConfig?.postGameChannelId) {
-    await cleanupPostGameChannelMessages(interaction.client, context.serverConfig)
-  }
+  const gameLogComponents = result.cleanupSetupChannels && isConfiguredPostGameChannel(revealChannel, context.serverConfig)
+    ? await createEndGameLogComponents({
+      client: interaction.client,
+      deletePendingGameSummary: deps.deletePendingGameSummary,
+      guildId: interaction.guild.id,
+      result,
+      serverConfigs: deps.serverConfigs
+    })
+    : []
+
   await deps.revealWinningTeamFn(revealChannel, winnerChoice, undefined, {
-    components: createGameLogDecisionRows(result.pendingSummary?.id),
+    components: gameLogComponents,
     playerLabels: labels,
     revealId,
     view: result.view
@@ -203,11 +211,16 @@ async function queuedMessageEditIfPresent(message, payload) {
   })
 }
 
+function isConfiguredPostGameChannel(channel, serverConfig) {
+  return Boolean(channel?.id && serverConfig?.postGameChannelId && channel.id === serverConfig.postGameChannelId)
+}
+
 module.exports = {
   clearForcedWinnerLock,
   createOverrideCancelledPayload,
   createWrongWinnerWarningPayload,
   handleEndRevealChoice,
+  isConfiguredPostGameChannel,
   queuedMessageEditIfPresent,
   shouldPrivatelyWarnWrongWinner
 }
