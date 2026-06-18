@@ -1,6 +1,5 @@
 const { listScripts } = require('../../systems/game/scripts')
 const {
-  CLEAR_ROLE_VALUE,
   STORYTELLER_PLAYER_ACTIONS
 } = require('./constants')
 const {
