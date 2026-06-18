@@ -16,12 +16,14 @@ const MODAL_OPEN_BUTTON_PREFIXES = [
 function createDiagnosticContext(interaction, serverConfigs) {
   if (!interaction?.guild?.id || interaction.isAutocomplete?.()) return null
   if (isModalOpenButton(interaction)) return null
-  if (!hasAdministrator(interaction)) return null
+  if (!hasAdministratorOrGlobalCommandAccess(interaction)) return null
 
   const serverConfig = serverConfigs?.get?.(interaction.guild.id)
   const diagnosticChannelIds = [
     serverConfig?.gameChannelId,
-    serverConfig?.storytellerChannelId
+    serverConfig?.storytellerChannelId,
+    serverConfig?.liveChannelId,
+    serverConfig?.postGameChannelId
   ].filter(Boolean)
   if (!diagnosticChannelIds.includes(interaction.channelId)) return null
 
@@ -81,10 +83,6 @@ function isModalOpenButton(interaction) {
   return MODAL_OPEN_BUTTON_PREFIXES.some(prefix => customId === prefix || customId.startsWith(`${prefix}:`))
 }
 
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
-}
-
 function describeInteraction(interaction) {
   if (interaction.isChatInputCommand?.()) return describeChatInputCommand(interaction)
   if (interaction.isButton?.()) return `Button: ${interaction.customId || 'unknown'}`
@@ -111,6 +109,5 @@ function formatElapsedSeconds(elapsedMs) {
 
 module.exports = {
   createDiagnosticContext,
-  createDiagnosticPayload,
-  hasAdministrator
+  createDiagnosticPayload
 }
