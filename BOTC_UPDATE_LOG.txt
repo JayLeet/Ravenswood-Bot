@@ -13,9 +13,17 @@ Type: medium
 Date: 2026-06-18
 Requires /setup: no
 Changes:
-- Saved game logs now include a readable text transcript with BOTC channel chat grouped by phase and channel.
-- Game logs now use player names in the main recap and keep technical IDs in the moderation section at the end.
-- Short games now show seconds instead of rounding every game up to 1 minute.
+- `/setup-manual` replaces the old `/setup-channels` command. Self-hosted copies should redeploy slash commands after updating.
+- Setup screens, first-join notices, and setup success messages are shorter and clearer.
+- Setup checks and setup failures now explain Discord permission and role-order blockers more precisely.
+- `/delete` is safer around interrupted setup and only removes bot-managed setup areas.
+- Saved game logs now include readable recaps, short-game durations in seconds, and technical IDs only in the moderation section.
+- Saved game logs now include BOTC channel chat transcripts grouped by phase and channel.
+- Game-log saving supports automatic archive posting or manual Save/Discard controls.
+- `/help`, `/script`, setup command descriptions, buttons, and several player-facing messages were cleaned up.
+- Day discussion notices now include private voice chat and invite buttons.
+- Storyteller dashboard, Grimoire views, role emojis, Night Order guidance, and end-game reveal flow received UI and reliability polish.
+- Update notices now ping only users who opted into important update notices, and admins can choose the update-log channel.
 - Self-hosted copies need Server Members Intent and Message Content Intent enabled for the current release.
 
 Latest medium update
@@ -26,9 +34,17 @@ Type: medium
 Date: 2026-06-18
 Requires /setup: no
 Changes:
-- Saved game logs now include a readable text transcript with BOTC channel chat grouped by phase and channel.
-- Game logs now use player names in the main recap and keep technical IDs in the moderation section at the end.
-- Short games now show seconds instead of rounding every game up to 1 minute.
+- `/setup-manual` replaces the old `/setup-channels` command. Self-hosted copies should redeploy slash commands after updating.
+- Setup screens, first-join notices, and setup success messages are shorter and clearer.
+- Setup checks and setup failures now explain Discord permission and role-order blockers more precisely.
+- `/delete` is safer around interrupted setup and only removes bot-managed setup areas.
+- Saved game logs now include readable recaps, short-game durations in seconds, and technical IDs only in the moderation section.
+- Saved game logs now include BOTC channel chat transcripts grouped by phase and channel.
+- Game-log saving supports automatic archive posting or manual Save/Discard controls.
+- `/help`, `/script`, setup command descriptions, buttons, and several player-facing messages were cleaned up.
+- Day discussion notices now include private voice chat and invite buttons.
+- Storyteller dashboard, Grimoire views, role emojis, Night Order guidance, and end-game reveal flow received UI and reliability polish.
+- Update notices now ping only users who opted into important update notices, and admins can choose the update-log channel.
 - Self-hosted copies need Server Members Intent and Message Content Intent enabled for the current release.
 
 Latest major update
