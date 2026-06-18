@@ -4,6 +4,7 @@ const BUTTON_EMOJIS = Object.freeze({
   Approve: '\u{2705}',
   'Approve Nomination': '\u{2705}',
   'Assign Role': '\u{1F3AD}',
+  'Assign Roles': '\u{1F3AD}',
   'Auto Lunatic Info': '\u{1F504}',
   Back: '\u{2B05}\u{FE0F}',
   Cancel: '\u{274C}',
@@ -28,8 +29,11 @@ const BUTTON_EMOJIS = Object.freeze({
   Good: '\u{1F607}',
   'Good Won': '\u{1F499}',
   'Got it': '\u{1F44D}',
+  Help: '\u{1F4DA}',
   Kill: '\u{1F480}',
   'Lower your hand': '\u{1F447}',
+  'Desktop view': '\u{1F5A5}\uFE0F',
+  'Mobile view': '\u{1F4F1}',
   Move: '\u{1F500}',
   Minions: '\u{1F40D}',
   'Night Order': '\u{1F319}',
@@ -40,6 +44,7 @@ const BUTTON_EMOJIS = Object.freeze({
   Nominate: '\u{1F5E3}\u{FE0F}',
   'Open to All Players': '\u{1F50A}',
   Pertinence: '\u{1F5E3}',
+  Pause: '\u{23F8}\u{FE0F}',
   Player: '\u{1F464}',
   'Player Controls': '\u{1F39B}\u{FE0F}',
   Previous: '\u{2B05}\u{FE0F}',
@@ -47,6 +52,7 @@ const BUTTON_EMOJIS = Object.freeze({
   Randomize: '\u{1F3B2}',
   Refresh: '\u{1F504}',
   Reject: '\u{274C}',
+  Resume: '\u{25B6}\u{FE0F}',
   'Request Storyteller': '\u{1F4E8}',
   'Reminder Tokens': '\u{1F3F7}\u{FE0F}',
   Requests: '\u{1F4E8}',
@@ -97,7 +103,6 @@ function resolveButtonEmoji(label, customId = null) {
   const id = String(customId || '')
   if (id.includes(':move-player:')) return BUTTON_EMOJIS.Move
   if (id.includes(':grimoire:player:')) return BUTTON_EMOJIS.Player
-  if (id.includes(':grim-reveal:')) return BUTTON_EMOJIS['View Grimoire']
   if (id.includes(':night-action:player:')) return BUTTON_EMOJIS.Player
   if (id.includes(':night-action:role:')) return BUTTON_EMOJIS['Assign Role']
   return null
