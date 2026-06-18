@@ -2,11 +2,17 @@ const {
   revealPostGameChannelToStoryteller
 } = require('../../phaseChannelPermissions')
 const {
+  cleanupPostGameChannelMessages
+} = require('../../../../utils/channelCleanup')
+const {
   editDashboardFailure
 } = require('../feedback')
 const {
   sendRequiredMessage
 } = require('../../../../utils/discord/writeIntents')
+const {
+  queuedMessageEdit
+} = require('../../../../utils/discord/messageActions')
 const {
   createGrimRevealNoticePayload
 } = require('./grimRevealNotice')
@@ -26,6 +32,8 @@ async function postGrimRevealBoard({
   interaction,
   labels,
   revealId,
+  cleanupExisting = true,
+  existingMessageRef = null,
   serverConfig,
   view
 }) {
@@ -36,9 +44,16 @@ async function postGrimRevealBoard({
   }
 
   await revealPostGameChannelToStoryteller(interaction.client, interaction.guild.id, serverConfig, gameManager)
+  const payload = createGrimRevealNoticePayload(view, revealId, labels)
+  const edited = await editExistingRevealBoard(revealChannel, existingMessageRef, payload)
+  if (edited) return { ok: true, message: edited, reused: true }
+
+  if (cleanupExisting && revealChannel.id === serverConfig?.postGameChannelId) {
+    await cleanupPostGameChannelMessages(interaction.client, serverConfig)
+  }
   const sent = await sendRequiredMessage(
     revealChannel,
-    createGrimRevealNoticePayload(view, revealId, labels),
+    payload,
     {
       failureMessage,
       failureSuggestion
@@ -47,6 +62,34 @@ async function postGrimRevealBoard({
 
   if (!sent.ok) return createRevealBoardFailure(failureMessage, failureSuggestion, sent.error?.cause)
   return { ok: true, message: sent.message }
+}
+
+async function editExistingRevealBoard(channel, existingMessageRef, payload) {
+  if (!existingMessageRef?.boardMessageId) return null
+  const refChannelId = existingMessageRef.boardChannelId || existingMessageRef.channelId
+  if (refChannelId && refChannelId !== channel.id) return null
+  if (typeof channel?.messages?.fetch !== 'function') return null
+
+  const message = await channel.messages.fetch(existingMessageRef.boardMessageId).catch(err => {
+    log.recoverable('fetch-existing-grim-reveal-board', err, {
+      channelId: channel.id,
+      guildId: channel.guildId || channel.guild?.id,
+      messageId: existingMessageRef.boardMessageId,
+      revealId: existingMessageRef.id
+    })
+    return null
+  })
+  if (!message) return null
+
+  return queuedMessageEdit(message, payload).catch(err => {
+    log.recoverable('edit-existing-grim-reveal-board', err, {
+      channelId: channel.id,
+      guildId: channel.guildId || channel.guild?.id,
+      messageId: message.id,
+      revealId: existingMessageRef.id
+    })
+    return null
+  })
 }
 
 function createRevealBoardFailure(message, suggestion, cause = null) {
@@ -84,6 +127,7 @@ function editRevealBoardFailure(interaction, result) {
 
 module.exports = {
   createRevealBoardFailure,
+  editExistingRevealBoard,
   editRevealBoardFailure,
   postGrimRevealBoard,
   rollbackUnpostedReveal
