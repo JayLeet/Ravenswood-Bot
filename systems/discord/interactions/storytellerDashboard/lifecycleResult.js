@@ -13,6 +13,7 @@ function createDashboardLifecycleResultHandler({
 }) {
   return async function handleDashboardLifecycleResult(interaction, context, result, successMessage, liveMessage = null) {
     if (!result.ok) return editDashboardLifecycleFailure(interaction, result)
+    const liveNotice = normalizeLiveNotice(liveMessage)
 
     if (result.ended) {
       await sendDashboardFeedback(
@@ -27,7 +28,8 @@ function createDashboardLifecycleResultHandler({
       }
 
       await sendGamePanelNotices(services, interaction, context.serverConfig, {
-        liveMessage: liveMessage || result.publicMessage,
+        liveMessage: liveNotice.message || result.publicMessage,
+        publicComponents: liveNotice.components,
         publicEmbeds: result.publicEmbeds,
         spectatorMessage: result.spectatorMessage
       })
@@ -42,14 +44,25 @@ function createDashboardLifecycleResultHandler({
       dashboardState.getSelectedPlayer(interaction.guild.id, interaction.member.id)
     )
 
-    if (liveMessage || result.publicEmbeds?.length) {
+    if (liveNotice.message || liveNotice.components?.length || result.publicEmbeds?.length) {
       await sendGamePanelNotices(services, interaction, context.serverConfig, {
-        liveMessage,
+        liveMessage: liveNotice.message,
+        publicComponents: liveNotice.components,
         publicEmbeds: result.publicEmbeds
       })
     }
 
     return editDashboardSuccess(interaction, successMessage || 'Done.')
+  }
+}
+
+function normalizeLiveNotice(liveNotice) {
+  if (!liveNotice || typeof liveNotice === 'string') {
+    return { components: null, message: liveNotice || null }
+  }
+  return {
+    components: liveNotice.components?.length ? liveNotice.components : null,
+    message: liveNotice.message || null
   }
 }
 
@@ -60,5 +73,6 @@ async function sendGamePanelNotices(services, interaction, serverConfig, result)
 
 module.exports = {
   createDashboardLifecycleResultHandler,
+  normalizeLiveNotice,
   sendGamePanelNotices
 }
