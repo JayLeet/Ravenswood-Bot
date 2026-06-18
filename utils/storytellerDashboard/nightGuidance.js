@@ -207,6 +207,16 @@ function createCurrentInstructionText(current) {
     ].join('\n')
   }
 
+  if (current.roleTeam === 'demon' && Number(current.action?.day || 1) <= 1) {
+    return compactLines([
+      `Wake ${current.playerLabel}.`,
+      'Press Wake, then More Info, then These characters are not in play.',
+      'Choose exactly 3 good characters that are not in play, then Submit.',
+      'This sends the bluff list to the Demon.',
+      'Use Move only when you want to move to their voice channel.'
+    ]).join('\n')
+  }
+
   return compactLines([
     `Wake ${current.playerLabel}.`,
     'Use Wake to choose night-info buttons to send.',
