@@ -11,11 +11,15 @@ const {
 const {
   createBotLogger
 } = require('../../utils/logger')
+const {
+  getCacheValues
+} = require('../../utils/discord/cacheValues')
 
 const log = createBotLogger({ subsystem: 'RuntimeEvents' })
 
 function createClientReadyHandler({
   client,
+  deletePendingGameSummariesNotInGuilds,
   recoverActiveGames,
   registerGameVoiceChannels,
   registerIdleLobbyWatch,
@@ -46,6 +50,8 @@ function createClientReadyHandler({
     registerStartingRoleInfoDispatch()
 
     logStartupStep('Recovering active games...')
+    deletePendingGameSummariesNotInGuilds?.([...getCacheValues(client.guilds?.cache)].map(guild => guild.id))
+
     await recoverActiveGames(client).catch(err => {
       logError(console, '[BOTC][Startup] Active game recovery failed', err)
     })
@@ -59,6 +65,20 @@ function createClientReadyHandler({
     })
 
     logStartupStep('Startup recovery complete.')
+  }
+}
+
+function createGuildDeleteHandler({
+  deletePendingGameSummary
+}) {
+  return async guild => {
+    const deleted = deletePendingGameSummary?.(guild.id)
+    if (deleted) {
+      log.info('guild-delete-pending-summary-cleaned', 'Removed pending game-log summary for departed guild.', {
+        guildId: guild.id,
+        guildName: guild.name
+      })
+    }
   }
 }
 
@@ -143,15 +163,10 @@ function shouldPersistNoticeChannel(notice) {
   return [BOT_UPDATE_CHANNEL_SOURCE, 'created', 'configured'].includes(notice?.channelSource)
 }
 
-function getCacheValues(cache) {
-  if (Array.isArray(cache)) return cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  return []
-}
-
 module.exports = {
   createClientReadyHandler,
   createGuildCreateHandler,
+  createGuildDeleteHandler,
   sendFirstJoinSetupNoticeOnce,
   sendMissingFirstJoinSetupNotices
 }
