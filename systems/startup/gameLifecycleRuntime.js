@@ -1,4 +1,4 @@
-const GameLifecycleManager = require('../game/GameLifecycleManager')
+const GameLifecycleManager = require('../GameLifecycleManager')
 const {
   registerRuntimeMaintenanceTask
 } = require('../../utils/runtimeMaintenance')
