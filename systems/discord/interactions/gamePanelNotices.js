@@ -33,7 +33,7 @@ async function sendNotice(interaction, channelId, message, embeds = null, compon
 
   const payload = embeds?.length
     ? { embeds: embeds.map(createEmbedFromData) }
-    : { content: extractMentions(message), embeds: message ? [createSystemEmbed('Notice', message, 0x3498db)] : [] }
+    : { content: extractMentions(message), embeds: message ? [createSystemEmbed('📣 Game Notice', message, 0x3498db)] : [] }
   if (components?.length) payload.components = components
   const sent = await sendOptionalNotice(channel, payload, {
     context: { channelId, guildId: interaction.guild.id, subsystem },
