@@ -28,6 +28,9 @@ const {
   getSetupPermissionState
 } = require('./setupSettingsPermissionState')
 const {
+  findCacheValue
+} = require('./discord/cacheValues')
+const {
   hasAdministratorOrGlobalCommandAccess
 } = require('./commandAccess')
 
@@ -196,9 +199,7 @@ function resolveSetupSettingsChannel(guild, serverConfig, channelKey) {
   if (!channelId) return null
   const cache = guild?.channels?.cache
   if (typeof cache?.get === 'function') return cache.get(channelId) || null
-  if (Array.isArray(cache)) return cache.find(channel => channel.id === channelId) || null
-  if (typeof cache?.values === 'function') return [...cache.values()].find(channel => channel.id === channelId) || null
-  return null
+  return findCacheValue(cache, channel => channel.id === channelId)
 }
 
 function getSetupSettingsChannelId(serverConfig, channelKey) {
