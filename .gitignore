@@ -5,9 +5,9 @@ node_modules/
 # Environment and secrets
 .env
 .env.*
-!.env.example
 
 # Runtime data
+backups/
 games.json
 server-configs.json
 botc.sqlite*
