@@ -30,7 +30,7 @@ function createPrivateVoiceRequestInteractionSystem({
   gameLifecycle,
   gameVoiceChannels
 }) {
-  const handlePrivateVoiceNoticeButton = createPrivateVoiceNoticeButtonHandler({ gameLifecycle })
+  const handlePrivateVoiceNoticeButton = createPrivateVoiceNoticeButtonHandler({ gameLifecycle, gameVoiceChannels })
 
   async function handlePrivateVoiceRequestInteraction(interaction) {
     const parsed = parsePrivateVoiceRequestCustomId(interaction.customId)
