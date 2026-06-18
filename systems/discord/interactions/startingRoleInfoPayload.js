@@ -1,6 +1,6 @@
 const { ActionRowBuilder, EmbedBuilder } = require('discord.js')
 const { createPlayerGrimoireOpenButton } = require('../../../utils/playerGrimoire')
-const { createHelpButton } = require('../../../commands/help')
+const { createInGameHelpButton } = require('../../../commands/help')
 const { createRequestStorytellerRow } = require('../../../utils/storytellerRequestButtons')
 const { createFirstNightEvilInfoText } = require('../../../utils/nightWakeInfo')
 const { createLunaticFirstNightInfoText } = require('../../../utils/lunaticInfo')
@@ -79,7 +79,7 @@ function createStartingRoleInfoButtonRow(guildId, playerId) {
   const requestRow = createRequestStorytellerRow(guildId, playerId)
   const buttons = [...(requestRow?.components || [])]
   buttons.push(createPlayerGrimoireOpenButton(playerId))
-  buttons.push(createHelpButton())
+  buttons.push(createInGameHelpButton())
   return new ActionRowBuilder().addComponents(buttons)
 }
 
