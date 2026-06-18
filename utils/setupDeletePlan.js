@@ -5,6 +5,9 @@ const {
   shouldFallbackDeleteCategory,
   shouldFallbackDeleteChannel
 } = require('./setupCleanupFallback')
+const {
+  getCacheValues
+} = require('./discord/cacheValues')
 
 function createSetupDeletePlan(guild, serverConfig = {}, options = {}) {
   const channelsSource = getGuildChannels(guild, options.channels)
@@ -89,12 +92,7 @@ function getGuildChannelById(channels, channelId) {
 }
 
 function getGuildChannels(guild, channels = null) {
-  const source = channels || guild?.channels?.cache
-  if (!source) return []
-  if (Array.isArray(source)) return source
-  if (typeof source.values === 'function') return [...source.values()]
-  if (typeof source[Symbol.iterator] === 'function') return [...source]
-  return Object.values(source)
+  return getCacheValues(channels || guild?.channels?.cache)
 }
 
 module.exports = {
