@@ -12,6 +12,9 @@ const {
   queuedMessageEdit
 } = require('../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../utils/discord/interactionErrors')
+const {
   createNightInfoDismissCustomId
 } = require('../../../utils/nightActionCustomIds')
 const {
@@ -149,12 +152,6 @@ async function fetchStatusChannel(client, ref, context) {
     })
     return STATUS_REF_UNAVAILABLE
   }
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 function formatStatusTitle(title) {
