@@ -30,11 +30,12 @@ const {
 const ADMIN_DIAGNOSTIC_STATE = Symbol('botcAdminDiagnosticState')
 
 function createAdminInteractionDiagnostics({
+  gameLifecycle = null,
   serverConfigs,
   slowInteractionNoticeMs = DEFAULT_SLOW_INTERACTION_NOTICE_MS
 }) {
   function watch(interaction) {
-    const context = createDiagnosticContext(interaction, serverConfigs)
+    const context = createDiagnosticContext(interaction, serverConfigs, gameLifecycle)
     if (!context) return createNoopWatch()
 
     let finished = false
