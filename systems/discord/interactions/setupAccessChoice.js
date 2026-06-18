@@ -76,6 +76,13 @@ function createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfi
         privateAccess: parsed.privateAccess
       }))
     }
+    if (parsed.action === 'log-mode') {
+      return updateInteraction(interaction, createSetupConfirmPayload({
+        gameLogSaveMode: parsed.gameLogSaveMode,
+        mode: parsed.mode,
+        privateAccess: parsed.privateAccess
+      }))
+    }
 
     return runSetupAccessChoiceFlight(interaction, singleFlight, () => runSetupAccessChoice(interaction, parsed, {
       gameManager,
@@ -98,10 +105,20 @@ async function runSetupAccessChoice(interaction, parsed, context) {
       { category, privateAccess: parsed.privateAccess }
     ))
   }
+  if (!parsed.gameLogSaveMode) {
+    return updateInteraction(interaction, createSetupConfirmPayload({
+      mode: parsed.mode,
+      privateAccess: parsed.privateAccess
+    }))
+  }
 
   const onProgress = createSetupProgressUpdater(interaction)
   await updateInteraction(interaction, createSetupProgressPayload())
-  const result = await runSetup(interaction, context, { onProgress, privateAccess: parsed.privateAccess })
+  const result = await runSetup(interaction, context, {
+    gameLogSaveMode: parsed.gameLogSaveMode,
+    onProgress,
+    privateAccess: parsed.privateAccess
+  })
   return sendSetupChoiceResult(interaction, result)
 }
 
