@@ -165,6 +165,7 @@ function parseRandomRoleDrunkShownButton(customId) {
 
 function formatRandomAssignments(assignments = []) {
   if (!assignments.length) return 'No roles were assigned.'
+  const hasDrunkShownRole = assignments.some(assignment => assignment.shownRoleName)
 
   return [
     'Random roles assigned:',
@@ -175,9 +176,11 @@ function formatRandomAssignments(assignments = []) {
         : ''
       return `<@${assignment.playerId}>: ${assignment.roleName}${shown}`
     }),
-    '',
-    'If the Storyteller changes their mind later, select the Drunk player, open Assign Role, and change "Drunk thinks they are".'
-  ].join('\n')
+    hasDrunkShownRole ? '' : null,
+    hasDrunkShownRole
+      ? 'If the Storyteller changes their mind later, select the Drunk player, open Assign Role, and change "Drunk thinks they are".'
+      : null
+  ].filter(line => line !== null).join('\n')
 }
 
 async function updateControlPayload(interaction, payload) {
