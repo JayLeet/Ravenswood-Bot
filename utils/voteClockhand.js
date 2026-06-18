@@ -46,19 +46,9 @@ function rotateAfter(playerIds, startPlayerId) {
   return [...ids.slice(index + 1), ...ids.slice(0, index + 1)]
 }
 
-function rotateFrom(playerIds, startPlayerId) {
-  const ids = [...new Set(playerIds || [])]
-  if (!ids.length || !startPlayerId) return ids
-
-  const index = ids.indexOf(startPlayerId)
-  if (index < 0) return ids
-  return [...ids.slice(index), ...ids.slice(0, index)]
-}
-
 module.exports = {
   getClockhandOrder,
   getClockhandState,
   getNextClockhandPlayerId,
-  rotateAfter,
-  rotateFrom
+  rotateAfter
 }
