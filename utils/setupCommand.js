@@ -11,9 +11,12 @@ const {
   ensureSetupRoles,
 } = require('./setupAutoChannels')
 const {
-  SETUP_CHANNEL_OPTION_NAMES,
   getManualSetupChannels
 } = require('./setupManualChannels')
+const {
+  GAME_LOG_SAVE_MODES,
+  normalizeGameLogSaveMode
+} = require('./gameLogSaveMode')
 const {
   findExistingAutoSetupCategory
 } = require('./setupAutoCategory')
@@ -166,7 +169,11 @@ async function saveSetupChannels(interaction, ctx, setupResult, options = {}) {
   saveServerConfig(interaction, ctx, setupResult.channels, panels, setupResult)
   await notifySetupProgress(options, 'save')
 
-  return { ok: true, message: createSetupSuccessMessage(setupResult, setupResult.channels) }
+  return {
+    ok: true,
+    title: '✅ Setup complete',
+    message: createSetupSuccessMessage(setupResult, setupResult.channels)
+  }
 }
 
 async function deletePostedSetupPanels(panels, action) {
@@ -243,6 +250,10 @@ function saveServerConfig(interaction, ctx, channels, panels, setupResult = {}) 
     firstJoinSetupNoticeSentAt: previousConfig.firstJoinSetupNoticeSentAt || null,
     gameChannelId: channels.gameChannel.id,
     gameLogChannelId: channels.gameLogChannel?.id || null,
+    gameLogSaveMode: normalizeGameLogSaveMode(
+      setupResult.gameLogSaveMode || previousConfig.gameLogSaveMode,
+      GAME_LOG_SAVE_MODES.manual
+    ),
     gamePanelMessageId: panels.gamePanelMessage.id,
     lastBotUpdateNoticeVersion: previousConfig.lastBotUpdateNoticeVersion || null,
     liveChannelId: channels.liveChannel.id,
@@ -266,7 +277,6 @@ function hasAdministrator(interaction) {
 }
 
 module.exports = {
-  SETUP_CHANNEL_OPTION_NAMES,
   hasAdministrator,
   preflightUnsafeSetupRoles,
   runSetup
