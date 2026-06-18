@@ -26,6 +26,7 @@ const {
   isStorytellerDashboardAction
 } = require('./storytellerDashboard/constants')
 const {
+  createTimerModal,
   createReminderModal,
   createSecretInfoModal,
   createVoteClockhandSpeedModal,
@@ -142,6 +143,7 @@ module.exports = {
   createReminderTokenPayload,
   createRoleSelectCustomId,
   createStorytellerAdvanceCustomId,
+  createTimerModal,
   createReminderModal,
   createRolePanelPayload,
   createSecretInfoModal,
