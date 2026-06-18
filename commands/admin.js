@@ -2,10 +2,10 @@ const {
   ApplicationCommandOptionType,
   PermissionFlagsBits
 } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
-  createGameLogDecisionRows
-} = require('../utils/gameLogDecisions')
+  createEndGameLogComponents
+} = require('../utils/gameLogEndResult')
 const {
   fetchGuildMemberWithRecoverableFallback
 } = require('../utils/discord/recoverableFetch')
@@ -65,7 +65,8 @@ module.exports = {
   },
   default_member_permissions: PermissionFlagsBits.Administrator.toString(),
 
-  execute: wrapCommand(async (interaction, { gameLifecycle }) => {
+  execute: wrapCommand(async (interaction, ctx) => {
+    const { gameLifecycle } = ctx
     if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
       return {
         ok: false,
@@ -114,10 +115,20 @@ module.exports = {
       )
 
       if (!result.ok) return result
+      const logComponents = await createEndGameLogComponents({
+        client: interaction.client,
+        deletePendingGameSummary: ctx.deletePendingGameSummary,
+        guildId: interaction.guild.id,
+        result,
+        serverConfigs: ctx.serverConfigs
+      })
 
       return {
         ...result,
-        publicComponents: createGameLogDecisionRows(result.pendingSummary?.id),
+        postGameComponents: logComponents,
+        postGameMessage: logComponents.length
+          ? 'The game was force-ended. Save or discard this game history here.'
+          : null,
         publicMessage:
           `The game was force-ended by <@${interaction.member.id}>.\n` +
           `Reason: ${result.reason}`
