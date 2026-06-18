@@ -3,7 +3,7 @@ const {
 } = require('discord.js')
 const {
   wrapCommand
-} = require('../systems/discord/interactions/commandWrapper')
+} = require('../utils/commandWrapper')
 const {
   MAX_TIMER_MINUTES,
   startStorytellerTimer
