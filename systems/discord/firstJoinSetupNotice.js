@@ -19,6 +19,9 @@ const {
   fetchWithRecoverableFallback
 } = require('../../utils/discord/recoverableFetch')
 const {
+  getCacheValues
+} = require('../../utils/discord/cacheValues')
+const {
   createBotLogger
 } = require('../../utils/logger')
 
@@ -26,7 +29,7 @@ const DISCLAIMER = 'Community-made unofficial tool. Not affiliated with, endorse
 const NOTICE_CHUNK_LIMIT = 1200
 const FIRST_JOIN_SETUP_CHECK_ID = 'botc:first-join:setup-check'
 const FIRST_JOIN_SETUP_ID = 'botc:first-join:setup'
-const FIRST_JOIN_SETUP_CHANNELS_ID = 'botc:first-join:setup-channels'
+const FIRST_JOIN_SETUP_MANUAL_ID = 'botc:first-join:setup-manual'
 const log = createBotLogger({ subsystem: 'FirstJoinSetupNotice' })
 
 async function sendFirstJoinSetupNotice(guild) {
@@ -98,30 +101,31 @@ function createMainSetupNoticePayload(userIds) {
 
 function createFirstJoinSetupEmbed() {
   return new EmbedBuilder()
-    .setTitle('BOTC Bot setup')
+    .setTitle('\u{1F916} Welcome to BOTC Bot')
     .setDescription([
-      'Thanks for adding BOTC Bot. Use these setup actions to check permissions, create the full default setup, or manually choose channels.',
+      'Start with the setup check, then choose the setup path that fits this server.',
+      'Automatic setup is recommended. Manual setup is for servers that already have channels to reuse.',
       DISCLAIMER
     ].join('\n\n'))
     .addFields(
       {
-        name: '/setup-check',
-        value: 'Checks whether the bot has the permissions and role access needed before setup runs.',
+        name: '\u{1FA7A} `/setup-check`',
+        value: 'Checks whether I have the Discord permissions needed before setup runs.',
         inline: false
       },
       {
-        name: '/setup',
-        value: 'Creates or refreshes the Ravenswood Bluff setup automatically. This is the recommended first setup path.',
+        name: '\u{1F6E0}\u{FE0F} `/setup`',
+        value: 'Opens guided setup. Choose Automatic setup or Manual setup from the first screen.',
         inline: false
       },
       {
-        name: '/setup-channels',
-        value: 'Opens a channel picker when you want to use existing channels or create only the missing manual channels.',
+        name: '\u{1F9ED} `/setup-manual`',
+        value: 'Advanced shortcut for choosing a category, Waiting Room, game-log archive, and save behavior.',
         inline: false
       },
       {
-        name: '/delete',
-        value: 'Admin-only cleanup for deleting the BOTC Bot setup channels and categories the bot created. User-created channels are left alone.',
+        name: '\u{1F9F9} `/delete`',
+        value: 'Deletes only BOTC-managed setup channels and categories. User-created channels are left alone.',
         inline: false
       }
     )
@@ -133,15 +137,18 @@ function createFirstJoinSetupNoticeActionRows() {
     new ActionRowBuilder().addComponents(
       new ButtonBuilder()
         .setCustomId(FIRST_JOIN_SETUP_CHECK_ID)
+        .setEmoji('\u{2705}')
         .setLabel('/setup-check')
         .setStyle(ButtonStyle.Secondary),
       new ButtonBuilder()
         .setCustomId(FIRST_JOIN_SETUP_ID)
+        .setEmoji('\u{2699}\u{FE0F}')
         .setLabel('/setup')
         .setStyle(ButtonStyle.Primary),
       new ButtonBuilder()
-        .setCustomId(FIRST_JOIN_SETUP_CHANNELS_ID)
-        .setLabel('/setup-channels')
+        .setCustomId(FIRST_JOIN_SETUP_MANUAL_ID)
+        .setEmoji('\u{1F4C2}')
+        .setLabel('/setup-manual')
         .setStyle(ButtonStyle.Secondary),
       createSetupDeleteButton()
     )
@@ -162,7 +169,7 @@ function isFirstJoinSetupNoticeInteraction(customId) {
   return [
     FIRST_JOIN_SETUP_CHECK_ID,
     FIRST_JOIN_SETUP_ID,
-    FIRST_JOIN_SETUP_CHANNELS_ID
+    FIRST_JOIN_SETUP_MANUAL_ID
   ].includes(String(customId || ''))
 }
 
@@ -194,18 +201,12 @@ function chunkMentions(ids) {
   return chunks
 }
 
-function getCacheValues(cache) {
-  if (Array.isArray(cache)) return cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  return []
-}
-
 module.exports = {
   DISCLAIMER,
   SETUP_DELETE_CUSTOM_ID,
-  FIRST_JOIN_SETUP_CHANNELS_ID,
   FIRST_JOIN_SETUP_CHECK_ID,
   FIRST_JOIN_SETUP_ID,
+  FIRST_JOIN_SETUP_MANUAL_ID,
   createFirstJoinSetupNoticeActionRows,
   createFirstJoinSetupNoticePayloads,
   findSetupNoticeChannel,
