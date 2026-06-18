@@ -1,4 +1,4 @@
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   fetchWithRecoverableFallback
 } = require('../utils/discord/recoverableFetch')
