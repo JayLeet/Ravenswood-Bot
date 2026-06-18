@@ -1,31 +1,35 @@
 BOTC Bot Update Log
 ===================
 
-Current version: 1.1.11
-Latest update type: patch
+Current version: 1.2.0
+Latest update type: medium
 Requires /setup: no
 
 Latest update
 -------------
 
-Version: 1.1.11
-Type: patch
-Date: 2026-06-16
+Version: 1.2.0
+Type: medium
+Date: 2026-06-18
 Requires /setup: no
 Changes:
-- Adds an audit-verified interrupted-setup fallback so `/delete` can remove only BOTC setup channels Discord proves the bot created after `/setup` began.
-- Requires manually selected `/setup-channels` channels to be inside one category before creating missing channels or continuing setup.
+- Saved game logs now include a readable text transcript with BOTC channel chat grouped by phase and channel.
+- Game logs now use player names in the main recap and keep technical IDs in the moderation section at the end.
+- Short games now show seconds instead of rounding every game up to 1 minute.
+- Self-hosted copies need Server Members Intent and Message Content Intent enabled for the current release.
 
 Latest medium update
 --------------------
 
-Version: 1.1.2
+Version: 1.2.0
 Type: medium
-Date: 2026-06-15
+Date: 2026-06-18
 Requires /setup: no
 Changes:
-- Re-sends the first-join setup notice when the bot is invited back to a server.
-- Startup recovery still avoids reposting old first-join notices on normal restarts.
+- Saved game logs now include a readable text transcript with BOTC channel chat grouped by phase and channel.
+- Game logs now use player names in the main recap and keep technical IDs in the moderation section at the end.
+- Short games now show seconds instead of rounding every game up to 1 minute.
+- Self-hosted copies need Server Members Intent and Message Content Intent enabled for the current release.
 
 Latest major update
 -------------------
