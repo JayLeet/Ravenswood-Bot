@@ -15,18 +15,26 @@ const {
   queuedGuildRoleCreate
 } = require('./discord/roleActions')
 const {
-  AUTO_SETUP_CATEGORY_NAME
-} = require('./botcChannelNames')
+  findCacheValue,
+  getCachedGuildChannels
+} = require('./discord/cacheValues')
 const {
   createBotLogger
 } = require('./logger')
 
 const DEV_ROLE_NAME = '🤖 BOTC Bot Dev'
-const MANAGED_CATEGORY_NAMES = Object.freeze([
-  AUTO_SETUP_CATEGORY_NAME,
-  'Ravenswood Bluff Cottages'
-])
 const DEV_ROLE_PERMISSIONS = 0n
+const SETUP_CHANNEL_ID_FIELDS = Object.freeze([
+  'botUpdateChannelId',
+  'gameChannelId',
+  'gameLogChannelId',
+  'liveChannelId',
+  'playerGrimoireChannelId',
+  'postGameChannelId',
+  'spectatorChannelId',
+  'storytellerChannelId',
+  'waitingRoomVoiceChannelId'
+])
 const DEV_CHANNEL_PERMISSION_PATCH = Object.freeze({
   ViewChannel: true,
   ReadMessageHistory: true,
@@ -40,7 +48,7 @@ const DEV_CHANNEL_PERMISSION_PATCH = Object.freeze({
 })
 const log = createBotLogger({ subsystem: 'DevAccessRole' })
 
-async function toggleDevAccess(guild, member) {
+async function toggleDevAccess(guild, member, options = {}) {
   if (!guild || !member) {
     return { ok: false, message: 'I could not find this server member.' }
   }
@@ -52,11 +60,23 @@ async function toggleDevAccess(guild, member) {
 
   if (hasRole(member, role)) {
     await queuedMemberRoleRemove(member, role)
+    log.info('disable-dev-access', 'Removed developer access role from owner.', {
+      guildId: guild.id,
+      memberId: member.id,
+      roleId: role.id
+    })
     return { ok: true, enabled: false, role, channelsUpdated: 0, channelsSkipped: 0 }
   }
 
-  const access = await applyDevRoleChannelAccess(guild, role)
+  const access = await applyDevRoleChannelAccess(guild, role, options.serverConfig || {})
   await queuedMemberRoleAdd(member, role)
+  log.info('enable-dev-access', 'Applied developer access role to setup-managed channels.', {
+    channelsSkipped: access.channelsSkipped,
+    channelsUpdated: access.channelsUpdated,
+    guildId: guild.id,
+    memberId: member.id,
+    roleId: role.id
+  })
 
   return {
     ok: true,
@@ -96,16 +116,20 @@ async function ensureRoleBelowBot(guild, role) {
     }))
 }
 
-async function applyDevRoleChannelAccess(guild, role) {
+async function applyDevRoleChannelAccess(guild, role, serverConfig = {}) {
   await guild.channels?.fetch?.().catch(err => log.recoverable('fetch-dev-role-channels', err, { guildId: guild.id }))
   let channelsUpdated = 0
   let channelsSkipped = 0
+  const updatedChannels = []
+  const skippedChannels = []
+  const managedIds = createDevAccessTargetIds(serverConfig)
 
   for (const channel of getGuildChannels(guild)) {
-    if (!isBotcManagedChannel(channel, guild)) continue
+    if (!isSetupManagedChannel(channel, managedIds)) continue
 
     if (!canEditChannelOverwrites(guild, channel)) {
       channelsSkipped += 1
+      skippedChannels.push(formatChannelLabel(channel))
       continue
     }
 
@@ -116,6 +140,7 @@ async function applyDevRoleChannelAccess(guild, role) {
       { reason: 'BOTC Bot developer channel access', type: OverwriteType.Role }
     ).catch(err => {
       channelsSkipped += 1
+      skippedChannels.push(formatChannelLabel(channel))
       log.recoverable('apply-dev-role-channel-access', err, {
         channelId: channel.id,
         guildId: guild.id,
@@ -124,20 +149,27 @@ async function applyDevRoleChannelAccess(guild, role) {
       return false
     })
 
-    if (updated) channelsUpdated += 1
+    if (updated) {
+      channelsUpdated += 1
+      updatedChannels.push(formatChannelLabel(channel))
+    }
   }
 
-  return { channelsUpdated, channelsSkipped }
+  return { channelsSkipped, channelsUpdated, skippedChannels, updatedChannels }
 }
 
-function isBotcManagedChannel(channel, guild) {
-  if (!channel) return false
-  if (MANAGED_CATEGORY_NAMES.includes(channel.name)) return true
+function createDevAccessTargetIds(serverConfig = {}) {
+  return new Set([
+    ...toIdArray(serverConfig.setupManagedCategoryIds),
+    ...toIdArray(serverConfig.setupManagedChannelIds),
+    ...toIdArray(serverConfig.setupBotCreatedCategoryIds),
+    ...toIdArray(serverConfig.setupBotCreatedChannelIds),
+    ...SETUP_CHANNEL_ID_FIELDS.map(key => serverConfig[key])
+  ].filter(Boolean).map(String))
+}
 
-  const parentId = channel.parentId || channel.parent?.id
-  if (!parentId) return false
-  const parent = getGuildChannels(guild).find(candidate => candidate?.id === parentId)
-  return MANAGED_CATEGORY_NAMES.includes(parent?.name)
+function isSetupManagedChannel(channel, managedIds) {
+  return Boolean(channel?.id && managedIds.has(String(channel.id)))
 }
 
 function canEditChannelOverwrites(guild, channel) {
@@ -153,12 +185,7 @@ function canEditChannelOverwrites(guild, channel) {
 }
 
 function findRoleByName(guild, roleName) {
-  const cache = guild?.roles?.cache
-  if (!cache) return null
-  if (typeof cache.find === 'function') return cache.find(role => role?.name === roleName) || null
-  if (typeof cache.values === 'function') return [...cache.values()].find(role => role?.name === roleName) || null
-  if (Array.isArray(cache)) return cache.find(role => role?.name === roleName) || null
-  return Object.values(cache).find(role => role?.name === roleName) || null
+  return findCacheValue(guild?.roles?.cache, role => role?.name === roleName)
 }
 
 function hasRole(member, role) {
@@ -166,18 +193,22 @@ function hasRole(member, role) {
 }
 
 function getGuildChannels(guild) {
-  const cache = guild?.channels?.cache
-  if (!cache) return []
-  if (typeof cache.values === 'function') return [...cache.values()]
-  if (Array.isArray(cache)) return cache
-  return Object.values(cache)
+  return getCachedGuildChannels(guild)
+}
+
+function formatChannelLabel(channel) {
+  return channel?.id ? `<#${channel.id}>` : String(channel?.name || 'Unknown channel')
+}
+
+function toIdArray(value) {
+  return Array.isArray(value) ? value : []
 }
 
 module.exports = {
   DEV_CHANNEL_PERMISSION_PATCH,
   DEV_ROLE_NAME,
   DEV_ROLE_PERMISSIONS,
-  MANAGED_CATEGORY_NAMES,
   applyDevRoleChannelAccess,
+  createDevAccessTargetIds,
   toggleDevAccess
 }
