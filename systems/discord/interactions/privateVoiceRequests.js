@@ -15,6 +15,9 @@ const {
   sendPrivateVoiceRequest
 } = require('./privateVoiceRequestActions')
 const {
+  createPrivateVoiceNoticeButtonHandler
+} = require('./privateVoiceNoticeButtons')
+const {
   fetchGuildMemberWithRecoverableFallback
 } = require('../../../utils/discord/recoverableFetch')
 const {
@@ -27,6 +30,8 @@ function createPrivateVoiceRequestInteractionSystem({
   gameLifecycle,
   gameVoiceChannels
 }) {
+  const handlePrivateVoiceNoticeButton = createPrivateVoiceNoticeButtonHandler({ gameLifecycle })
+
   async function handlePrivateVoiceRequestInteraction(interaction) {
     const parsed = parsePrivateVoiceRequestCustomId(interaction.customId)
     if (!parsed) return handlePrivateVoiceNonRequestInteraction(interaction)
@@ -34,14 +39,18 @@ function createPrivateVoiceRequestInteractionSystem({
     if (interaction.user?.id !== parsed.targetId) {
       return respondPrivateSystem(
         interaction,
-        'Action failed',
+        'Not your private voice request',
         'Only the invited player can answer this private voice request.'
       )
     }
 
     if (parsed.action === 'reject') {
       return updateInteraction(interaction, {
-        embeds: [createSystemEmbed('Request rejected', 'Private voice request rejected.', 0xe74c3c)],
+        embeds: [createSystemEmbed(
+          'Private voice request rejected',
+          'You rejected the private voice request. No private room access changed.',
+          0xe74c3c
+        )],
         components: []
       })
     }
@@ -56,7 +65,10 @@ function createPrivateVoiceRequestInteractionSystem({
 
     if (!result.ok) {
       return updateInteraction(interaction, {
-        embeds: [createSystemEmbed('Action failed', result.error?.message || 'Could not open that private voice room.')],
+        embeds: [createSystemEmbed(
+          'Private room not opened',
+          result.error?.message || 'I could not open that private voice room. Try the request again from the day notice.'
+        )],
         components: []
       })
     }
@@ -64,8 +76,8 @@ function createPrivateVoiceRequestInteractionSystem({
     await updateInteraction(interaction, {
       embeds: [
         createSystemEmbed(
-          'Request accepted',
-          `Private voice room is ready: <#${result.channel.id}>.`,
+          'Private room ready',
+          `You accepted the request. The private voice room is ready: <#${result.channel.id}>.`,
           0x2ecc71
         )
       ],
@@ -77,6 +89,8 @@ function createPrivateVoiceRequestInteractionSystem({
   }
 
   async function handlePrivateVoiceNonRequestInteraction(interaction) {
+    const noticeResult = await handlePrivateVoiceNoticeButton(interaction)
+    if (noticeResult) return noticeResult
     const publicRoom = parsePrivateVoicePublicCustomId(interaction.customId)
     if (publicRoom) return handlePrivateVoicePublicInteraction(interaction, publicRoom)
     return handlePrivateVoicePromptInteraction(interaction)
@@ -86,7 +100,7 @@ function createPrivateVoiceRequestInteractionSystem({
     if (interaction.user?.id !== parsed.ownerId) {
       return respondPrivateSystem(
         interaction,
-        'Action failed',
+        'Only the room creator can do that',
         'Only the private room creator can open this room to all players.'
       )
     }
@@ -102,7 +116,10 @@ function createPrivateVoiceRequestInteractionSystem({
 
     if (!result.ok) {
       return updateInteraction(interaction, {
-        embeds: [createSystemEmbed('Action failed', result.error?.message || 'Could not open that private voice room.')],
+        embeds: [createSystemEmbed(
+          'Private room not opened',
+          result.error?.message || 'I could not open that private voice room to all players. Try again from the private voice picker.'
+        )],
         components: []
       })
     }
@@ -110,7 +127,7 @@ function createPrivateVoiceRequestInteractionSystem({
     return updateInteraction(interaction, {
       embeds: [
         createSystemEmbed(
-          'Room opened',
+          'Private room opened to all players',
           `All current players can now join <#${result.channel.id}>.`,
           0x2ecc71
         )
@@ -126,7 +143,7 @@ function createPrivateVoiceRequestInteractionSystem({
     if (interaction.user?.id !== parsed.ownerId) {
       return respondPrivateSystem(
         interaction,
-        'Action failed',
+        'Not your private voice picker',
         'Only the private room creator can use this player picker.'
       )
     }
@@ -144,7 +161,10 @@ function createPrivateVoiceRequestInteractionSystem({
       : null
     if (!guild || !ownerMember) {
       return updateInteraction(interaction, {
-        embeds: [createSystemEmbed('Action failed', 'That private voice room is no longer valid.')],
+        embeds: [createSystemEmbed(
+          'Private room no longer available',
+          'I could not find the private room owner anymore. The room may have closed or the game state changed.'
+        )],
         components: []
       })
     }
@@ -163,13 +183,20 @@ function createPrivateVoiceRequestInteractionSystem({
 
     if (!result.ok) {
       return updateInteraction(interaction, {
-        embeds: [createSystemEmbed('Action failed', result.error?.message || 'Could not send that private voice request.')],
+        embeds: [createSystemEmbed(
+          'Private voice request not sent',
+          result.error?.message || 'I could not send that private voice request. Try again from the private voice picker.'
+        )],
         components: []
       })
     }
 
     return updateInteraction(interaction, {
-      embeds: [createSystemEmbed('Request sent', `Private voice request sent to <@${parsed.targetId}>.`, 0x2ecc71)],
+      embeds: [createSystemEmbed(
+        'Private voice request sent',
+        `I sent <@${parsed.targetId}> a private voice request. They need to accept before the room opens.`,
+        0x2ecc71
+      )],
       components: []
     })
   }
@@ -204,7 +231,7 @@ async function notifyRequester(interaction, requesterId, channel) {
     embeds: [
       createSystemEmbed(
         'Private voice request accepted',
-        `Your private voice room is ready: <#${channel.id}>.`,
+        `They accepted. Your private voice room is ready: <#${channel.id}>.`,
         0x2ecc71
       )
     ]
