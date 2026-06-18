@@ -19,6 +19,10 @@ const {
   deferIfNoStatusUpdater
 } = require('./buttonHandler')
 const {
+  createUnsupportedDashboardControlFailure,
+  reportUnsupportedDashboardControl
+} = require('./controlAudit')
+const {
   formatDashboardPlayer,
   isFakeDashboardPlayer
 } = require('./fakePlayers')
@@ -88,11 +92,8 @@ function createStorytellerDashboardModalHandler({
       })
     }
 
-    return editDashboardFailure(interaction, {
-      title: 'Unknown form',
-      message: 'That dashboard form is not recognized.',
-      suggestion: 'Refresh the dashboard and try again.'
-    })
+    reportUnsupportedDashboardControl(interaction, 'form')
+    return editDashboardFailure(interaction, createUnsupportedDashboardControlFailure('form'))
   }
 }
 
