@@ -2,6 +2,12 @@ const {
   ChannelType
 } = require('discord.js')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
+  findCacheValue
+} = require('../../../../utils/discord/cacheValues')
+const {
   createBotLogger
 } = require('../../../../utils/logger')
 
@@ -87,18 +93,7 @@ function findCachedVoiceChannel(guild, predicate) {
 }
 
 function findCachedChannel(guild, predicate) {
-  const cache = guild?.channels?.cache
-  if (!cache) return null
-  if (typeof cache.find === 'function') return cache.find(predicate) || null
-  if (typeof cache.values === 'function') return [...cache.values()].find(predicate) || null
-  if (Array.isArray(cache)) return cache.find(predicate) || null
-  return Object.values(cache).find(predicate) || null
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
+  return findCacheValue(guild?.channels?.cache, predicate)
 }
 
 function isVoiceChannelLookupUnavailable(value) {
