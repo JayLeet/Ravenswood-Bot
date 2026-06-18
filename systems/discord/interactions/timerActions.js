@@ -45,7 +45,7 @@ async function startStorytellerTimer({ interaction, gameLifecycle, minutes, serv
     : null
 
   if (!liveChannel?.isTextBased?.()) {
-    return failure('I could not find the live game chat.', 'Run `/setup` again or check `/setup-channels`.')
+    return failure('I could not find the live game chat.', 'Run `/setup` again or check `/setup-manual`.')
   }
 
   const gongMode = game.phase === 'day'
