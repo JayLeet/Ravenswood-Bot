@@ -1,3 +1,7 @@
+const {
+  getCachedGuildRoles
+} = require('./discord/cacheValues')
+
 function validateSetupPermissionOverwriteTargets(guild, overwrites = []) {
   const botRole = guild?.members?.me?.roles?.highest
   const rolesById = getRolesById(guild)
@@ -35,14 +39,7 @@ function createBlockedSetupRoleMessage(roles) {
 }
 
 function getRolesById(guild) {
-  return new Map(getCachedRoles(guild).map(role => [String(role.id), role]))
-}
-
-function getCachedRoles(guild) {
-  const cache = guild?.roles?.cache
-  if (typeof cache?.values === 'function') return [...cache.values()]
-  if (Array.isArray(cache)) return cache
-  return []
+  return new Map(getCachedGuildRoles(guild).map(role => [String(role.id), role]))
 }
 
 module.exports = {
