@@ -9,7 +9,8 @@ const {
   createNominationsOpenedMessage
 } = require('../../../../utils/nominationRequests')
 const {
-  appendPrivateVoiceFeatureNotice
+  appendPrivateVoiceFeatureNotice,
+  createPrivateVoiceFeatureComponents
 } = require('../../../../utils/privateVoiceNotice')
 
 function createAdvanceButtonHandler({
@@ -39,7 +40,7 @@ function createAdvanceButtonHandler({
       context,
       result,
       createAdvanceStatusMessage(result),
-      createAdvanceLiveMessage(result)
+      createAdvanceLiveNotice(result)
     )
   }
 }
@@ -52,10 +53,19 @@ function createAdvanceStatusMessage(result) {
 }
 
 function createAdvanceLiveMessage(result) {
+  return createAdvanceLiveNotice(result)?.message || null
+}
+
+function createAdvanceLiveNotice(result) {
   if (!result.ok || result.ended) return null
   const phaseMessage = createPhaseLiveMessage(result)
-  if (!result.publicMessage) return phaseMessage
-  return [result.publicMessage, phaseMessage].filter(Boolean).join('\n')
+  const message = result.publicMessage
+    ? [result.publicMessage, phaseMessage].filter(Boolean).join('\n')
+    : phaseMessage
+  return {
+    components: createPrivateVoiceFeatureComponents(getAdvanceNoticePhase(result)),
+    message
+  }
 }
 
 function createPhaseLiveMessage(result) {
@@ -65,6 +75,10 @@ function createPhaseLiveMessage(result) {
   return appendPrivateVoiceFeatureNotice(`The game advanced to ${result.phaseLabel}.`, result.phase)
 }
 
+function getAdvanceNoticePhase(result) {
+  return result.view?.phase || result.phase || null
+}
+
 function isStaleAdvanceClick(expected, view) {
   return expected.state !== view.state || expected.phase !== view.phase || expected.day !== (view.day || 0)
 }
@@ -72,6 +86,7 @@ function isStaleAdvanceClick(expected, view) {
 module.exports = {
   createAdvanceButtonHandler,
   createAdvanceLiveMessage,
+  createAdvanceLiveNotice,
   createAdvanceStatusMessage,
   createPhaseLiveMessage,
   isStaleAdvanceClick
