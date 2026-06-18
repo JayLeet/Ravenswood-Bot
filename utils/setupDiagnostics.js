@@ -12,7 +12,7 @@ function formatSetupCheckReport(report) {
   const lines = [
     '**Setup readiness**',
     '',
-    'This checks whether I have the Discord permissions needed to run `/setup` or `/setup-channels`.'
+    'This checks whether I have the Discord permissions needed to run `/setup` or `/setup-manual`.'
   ]
 
   lines.push(formatCheck(
