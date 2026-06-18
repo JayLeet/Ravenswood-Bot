@@ -1,19 +1,22 @@
 const { PermissionFlagsBits } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
-  createSetupAccessChoicePayload
+  createSetupModeChoicePayload
 } = require('../utils/setupAccessChoice')
 const {
   hasAdministratorOrGlobalCommandAccess
 } = require('../utils/commandAccess')
+const {
+  preflightSetupPermissions
+} = require('../utils/setupPermissionPreflight')
 
 module.exports = {
   name: 'setup',
-  description: 'Automatically create or reuse the BOTC setup channels.',
+  description: 'Open guided BOTC setup.',
   options: [],
   data: {
     name: 'setup',
-    description: 'Automatically create or reuse the BOTC setup channels.',
+    description: 'Open guided BOTC setup.',
     options: [],
     default_member_permissions: PermissionFlagsBits.Administrator.toString()
   },
@@ -28,9 +31,14 @@ async function executeSetupCommand(interaction) {
     return { ok: false, error: { message: 'Only a server administrator or bot owner access user can run setup.' } }
   }
 
+  const missingPermissions = await preflightSetupPermissions(interaction.guild)
+  if (missingPermissions) {
+    return { ok: false, error: missingPermissions }
+  }
+
   return {
     ok: true,
-    ...createSetupAccessChoicePayload()
+    ...createSetupModeChoicePayload()
   }
 }
 
