@@ -2,13 +2,20 @@ const {
   sendBotUpdateNotices
 } = require('../discord/botUpdateNotifier')
 const {
+  createGameChatCapture
+} = require('../discord/gameChatCapture')
+const {
   createClientReadyHandler,
   createGuildCreateHandler,
+  createGuildDeleteHandler,
   sendMissingFirstJoinSetupNotices
 } = require('./runtimeEventHandlers')
 
 function createRuntimeEventHandlers({
   client,
+  chatCaptureDeps,
+  deletePendingGameSummariesNotInGuilds,
+  deletePendingGameSummary,
   ensureConfiguredGuildReady,
   gameVoiceChannels,
   idleLobby,
@@ -26,9 +33,15 @@ function createRuntimeEventHandlers({
   updateLog,
   votingPanels
 }) {
+  const gameChatCapture = createGameChatCapture({
+    ...chatCaptureDeps,
+    serverConfigs
+  })
+
   return {
     handleClientReady: createClientReadyHandler({
       client,
+      deletePendingGameSummariesNotInGuilds,
       recoverActiveGames: recovery.recoverActiveGames,
       registerGameVoiceChannels: gameVoiceChannels.registerGameVoiceChannels,
       registerIdleLobbyWatch: idleLobby.registerIdleLobbyWatch,
@@ -54,7 +67,11 @@ function createRuntimeEventHandlers({
       isSetupComplete,
       saveServerConfigs,
       serverConfigs
-    })
+    }),
+    handleGuildDelete: createGuildDeleteHandler({
+      deletePendingGameSummary
+    }),
+    handleMessageCreate: gameChatCapture.handleMessageCreate
   }
 }
 
