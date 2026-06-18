@@ -37,8 +37,11 @@ function createRunningDescription(context, level) {
 function getRunningReason(context) {
   const action = String(context?.action || '').toLowerCase()
   if (action === '/admin end-game') return 'Force-ending the game, removing game roles/nicknames, and starting end-game channel cleanup.'
-  if (action === '/end-game') return 'Ending the game, removing game roles/nicknames, and starting end-game channel cleanup.'
+  if (action === '/end-game') return 'Opening the post-game channel, preparing the end-game reveal, and posting the public Grimoire board.'
+  if (action.includes('storyteller:end')) return 'Opening the post-game channel, preparing the end-game reveal, and posting the public Grimoire board.'
   if (action.includes('night-order')) return 'Refreshing Night Order Guidance, player labels, and any current wake/prompt state.'
+  if (action.includes('grim-reveal')) return 'Revealing the selected player, refreshing the public Grimoire board, and updating player nicknames.'
+  if (action.includes('end-reveal')) return 'Recording the winning team, posting the final reveal, and checking whether all roles are revealed.'
   if (action.includes('random-roles')) return 'Applying the random role draft and refreshing Storyteller dashboard state.'
   if (action.includes('create-game:test')) return 'Creating the test lobby, fake players, seating order, panels, and dashboard state.'
   if (action.includes('create-game')) return 'Creating the lobby, setup-managed game state, panels, and dashboard state.'
