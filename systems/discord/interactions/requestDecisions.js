@@ -84,7 +84,7 @@ function createRequestDecisionInteractionSystem({
 
     return queuedChannelSend(channel, {
       content: extractMentions(notice.message),
-      embeds: [createSystemEmbed('Notice', notice.message, 0x3498db)]
+      embeds: [createSystemEmbed('📨 Request Update', notice.message, 0x3498db)]
     }).catch(err => {
       log.recoverable('send-request-notice', err, {
         channelId,
