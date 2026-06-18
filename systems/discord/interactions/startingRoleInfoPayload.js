@@ -23,9 +23,7 @@ function createStartingRoleInfoPayload(role, guildId = null, playerId = null, op
       teamInfo,
       countInfo,
       messages.get('game.start.roleInfo.abilityHeading'),
-      ability,
-      '',
-      messages.get('game.start.roleInfo.footer')
+      ability
     ].filter(Boolean).join('\n'))
     .setColor(0x9b59b6)
     .setTimestamp()
