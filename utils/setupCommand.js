@@ -86,6 +86,10 @@ async function runSetup(interaction, ctx, options = {}) {
   setupResult.privateAccess = !!setupOptions.privateAccess
 
   if (!setupResult.ok) return { ok: false, error: { message: setupResult.message } }
+  setupResult.gameLogSaveMode = normalizeGameLogSaveMode(
+    setupOptions.gameLogSaveMode || setupResult.gameLogSaveMode,
+    GAME_LOG_SAVE_MODES.manual
+  )
   if (options.bypassUnsafeRoles) setupResult.bypassUnsafeRoles = true
   await notifySetupProgress(options, 'channels')
   return saveSetupChannels(interaction, ctx, setupResult, options)
