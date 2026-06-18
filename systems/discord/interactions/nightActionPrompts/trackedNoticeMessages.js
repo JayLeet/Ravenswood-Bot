@@ -3,6 +3,9 @@ const {
   queuedMessageDelete
 } = require('../../../../utils/discord/messageActions')
 const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
+const {
   runRecoverableDiscordAction
 } = require('../../../../utils/discord/recoverableAction')
 
@@ -75,12 +78,6 @@ async function fetchNoticeChannel(client, ref, context, subsystem) {
     }, subsystem)
     return { stale: false, unavailable: true }
   }
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 function logRecoverable(action, err, context, subsystem) {
