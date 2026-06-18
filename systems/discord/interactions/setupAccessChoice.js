@@ -14,10 +14,15 @@ const {
   sendSetupChoiceResult
 } = require('./setupUnsafeRoles')
 const {
+  SETUP_ACCESS_MODES,
+  createSetupAccessChoicePayload,
+  createSetupConfirmPayload,
+  createSetupManagedDetailsPayload,
   isSetupAccessChoiceInteraction,
   parseSetupAccessChoiceCustomId
 } = require('../../../utils/setupAccessChoice')
 const {
+  createExistingSetupCategory,
   createExistingSetupChannelSelection,
   createSetupChannelPickerPayload
 } = require('../../../utils/setupChannelPicker')
@@ -41,7 +46,7 @@ function createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfi
     const parsed = parseSetupAccessChoiceCustomId(interaction.customId)
     if (!parsed) return null
 
-    if (!hasAdministrator(interaction)) {
+    if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
       return replyPrivateSystem(
         interaction,
         'Setup cancelled',
@@ -52,6 +57,24 @@ function createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfi
 
     if (parsed.action === 'cancel') {
       return updateInteraction(interaction, { content: null, embeds: [], components: [] })
+    }
+    if (parsed.action === 'automatic') {
+      return updateInteraction(interaction, createSetupAccessChoicePayload({ mode: SETUP_ACCESS_MODES.auto }))
+    }
+    if (parsed.action === 'manual') {
+      return updateInteraction(interaction, createSetupAccessChoicePayload({ mode: SETUP_ACCESS_MODES.manual }))
+    }
+    if (parsed.action === 'details') {
+      return updateInteraction(interaction, createSetupManagedDetailsPayload({ mode: parsed.mode }))
+    }
+    if (parsed.action === 'details-back') {
+      return updateInteraction(interaction, createSetupAccessChoicePayload({ mode: parsed.mode }))
+    }
+    if (parsed.action === 'public' || parsed.action === 'private') {
+      return updateInteraction(interaction, createSetupConfirmPayload({
+        mode: parsed.mode,
+        privateAccess: parsed.privateAccess
+      }))
     }
 
     return runSetupAccessChoiceFlight(interaction, singleFlight, () => runSetupAccessChoice(interaction, parsed, {
@@ -69,9 +92,10 @@ function createSetupAccessChoiceInteractionSystem({ gameManager, saveServerConfi
 
 async function runSetupAccessChoice(interaction, parsed, context) {
   if (parsed.mode === 'manual') {
+    const category = createExistingSetupCategory(interaction.guild)
     return updateInteraction(interaction, createSetupChannelPickerPayload(
-      createExistingSetupChannelSelection(interaction.guild),
-      { privateAccess: parsed.privateAccess }
+      category ? createExistingSetupChannelSelection(interaction.guild, category.id) : {},
+      { category, privateAccess: parsed.privateAccess }
     ))
   }
 
@@ -103,10 +127,6 @@ async function updateSetupProgressMessage(interaction, payload) {
   }
 
   return null
-}
-
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
 }
 
 function createSetupAccessContext(interaction) {
