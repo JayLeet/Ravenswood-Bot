@@ -4,6 +4,9 @@ const {
 const {
   getReusablePromptRef
 } = require('../nightPromptMessages')
+const {
+  isMissingChannelError
+} = require('../../../../utils/discord/interactionErrors')
 
 async function pruneMissingNightChannels({ game, gameLifecycle, guild, logger = null }) {
   for (const [playerId, channelId] of Object.entries(game.nightChannels || {})) {
@@ -36,13 +39,8 @@ function isUsableNightPromptChannel(channel) {
   return Boolean(channel?.isTextBased?.() || channel?.type === ChannelType.GuildVoice)
 }
 
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
-}
-
 function shouldRecoverNightActionPrompt(game, action, actorId) {
+  if (shouldSkipRecoveredFirstNightInfo(game, action, actorId)) return false
   if (action.promptChannelId && action.promptMessageId) return true
   if (action.autoPrompt === true) return true
 
@@ -50,8 +48,20 @@ function shouldRecoverNightActionPrompt(game, action, actorId) {
   return Boolean(storedRef?.channelId && storedRef?.messageId)
 }
 
+function shouldSkipRecoveredFirstNightInfo(game, action, actorId) {
+  if (!isFirstNightInfoAction(action)) return false
+  if (action?.purpose === 'role_change_info') return false
+  return Boolean(game?.roleInfoPromptMessages?.[actorId] || game?.roleInfoSent?.[actorId])
+}
+
+function isFirstNightInfoAction(action) {
+  return action?.firstNightRoleInfo === true ||
+    action?.purpose === 'first_night_info' ||
+    action?.purpose === 'starting_role_info'
+}
+
 module.exports = {
-  isMissingChannelError,
   pruneMissingNightChannels,
+  shouldSkipRecoveredFirstNightInfo,
   shouldRecoverNightActionPrompt
 }
