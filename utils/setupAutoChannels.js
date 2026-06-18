@@ -1,8 +1,11 @@
 const { ChannelType } = require('discord.js')
 const {
   AUTO_SETUP_CATEGORY_NAME,
-  BOT_UPDATE_CHANNEL_NAME
-} = require('./botcChannelNames')
+  AUTO_SETUP_CHANNELS,
+  AUTO_SETUP_GAME_LOG_CHANNEL,
+  BOT_UPDATE_CHANNEL_NAME,
+  SETUP_TEXT_CHANNEL_ORDER
+} = require('./setupAutoChannelDefinitions')
 const {
   getOrCreateBotUpdateChannel
 } = require('./botUpdateChannel')
@@ -14,6 +17,9 @@ const {
 } = require('./setupAutoCategory')
 const { ensureSetupSharedVoiceChannels } = require('./setupVoiceChannels')
 const { queuedGuildChannelCreate } = require('./discord/channelActions')
+const {
+  getCachedGuildChannels
+} = require('./discord/cacheValues')
 const {
   setChannelParentIfChanged,
   setGuildChannelPositionsIfChanged
@@ -53,55 +59,6 @@ const {
   hasAllSetupChannelOptions,
   hasAnySetupChannelOption
 } = require('./setupChannelOptions')
-
-const SETUP_TEXT_CHANNEL_ORDER = Object.freeze(
-  ['gameChannel', 'playerGrimoireChannel', 'storytellerChannel', 'liveChannel', 'postGameChannel', 'spectatorChannel']
-)
-const AUTO_SETUP_CHANNELS = Object.freeze({
-  game: {
-    key: 'gameChannel',
-    name: '🎭-game-lobby-help',
-    reason: 'BOTC game panel channel',
-    lockedPanel: true
-  },
-  storyteller: {
-    key: 'storytellerChannel',
-    name: '📖-storyteller-dashboard',
-    reason: 'BOTC Storyteller command channel',
-    allowedRoleKeys: ['storyteller']
-  },
-  playerGrimoire: {
-    key: 'playerGrimoireChannel',
-    name: '\u{1F4D6}-your-grimoire',
-    reason: 'BOTC player grimoire channel',
-    readOnlyRoleKeys: ['player', 'storyteller']
-  },
-  live: {
-    key: 'liveChannel',
-    name: '📣-live-game-chat',
-    reason: 'BOTC live game announcements channel',
-    allowedRoleKeys: ['player', 'storyteller'],
-    readOnlyRoleKeys: ['spectator', 'grimoireSpectator']
-  },
-  postGame: {
-    key: 'postGameChannel',
-    name: '🔎-post-game-chat',
-    reason: 'BOTC post-game reveal chat channel',
-    hiddenFromRoleKeys: ['player', 'spectator', 'storyteller']
-  },
-  spectator: {
-    key: 'spectatorChannel',
-    name: '👁️-spectator-gallery',
-    reason: 'BOTC spectator info channel',
-    allowedRoleKeys: ['grimoireSpectator', 'storyteller']
-  }
-})
-const AUTO_SETUP_GAME_LOG_CHANNEL = Object.freeze({
-  key: 'gameLogChannel',
-  name: '\u{1F5C2}\u{FE0F}-game-log',
-  reason: 'BOTC optional game log archive channel',
-  lockedPanel: true
-})
 
 async function createAutoSetupChannels(guild, gameManager, options = {}) {
   const previousConfig = options.previousConfig || {}
@@ -205,6 +162,32 @@ async function ensurePlayerGrimoireChannel(guild, category, gameManager = null, 
   return ensureSupportTextChannel(guild, category, gameManager, AUTO_SETUP_CHANNELS.playerGrimoire, options)
 }
 
+async function ensureSetupTextChannels(guild, category, gameManager = null, options = {}) {
+  const rolesReady = await ensureSetupRoles(guild, gameManager)
+  if (!rolesReady.ok) return rolesReady
+
+  const gameRoles = getGameRoles(guild, gameManager)
+  const channels = {}
+  for (const config of Object.values(AUTO_SETUP_CHANNELS)) {
+    const channel = await findOrCreateTextChannel(guild, category, config, gameRoles, options)
+    if (!channel) return { ok: false, message: createTextChannelFailureMessage(config, category, guild, createChannelOverwrites(guild, config, gameRoles)) }
+    channels[config.key] = channel
+  }
+  await orderSetupTextChannels(guild, channels)
+  return { ok: true, channels }
+}
+
+async function refreshGameLogChannel(guild, channel, gameManager = null) {
+  if (!channel) return null
+  const rolesReady = await ensureSetupRoles(guild, gameManager)
+  if (!rolesReady.ok) return null
+  const gameRoles = getGameRoles(guild, gameManager)
+  const overwrites = createChannelOverwrites(guild, AUTO_SETUP_GAME_LOG_CHANNEL, gameRoles)
+  await setPermissionOverwritesIfChanged(channel, overwrites)
+    .catch(err => logSetupRecoverable('refresh-manual-game-log-channel-permissions', err, createAutoChannelContext(channel, channel.parent)))
+  return channel
+}
+
 async function ensureSupportTextChannel(guild, category, gameManager, config, options = {}) {
   let gameRoles = {}
 
@@ -236,17 +219,9 @@ async function ensureSetupRoles(guild, gameManager) {
   return { ok: true }
 }
 
-function getCachedChannels(guild) {
-  if (typeof guild.channels.cache.values === 'function') {
-    return [...guild.channels.cache.values()]
-  }
-
-  return [...guild.channels.cache]
-}
-
 async function findOrCreateTextChannel(guild, category, config, gameRoles, options = {}) {
   const overwrites = createChannelOverwrites(guild, config, gameRoles)
-  const existing = getCachedChannels(guild).find(channel =>
+  const existing = getCachedGuildChannels(guild).find(channel =>
     channel.type === ChannelType.GuildText &&
     channel.name === config.name
   )
@@ -293,7 +268,9 @@ module.exports = {
   ensurePlayerGrimoireChannel,
   ensurePostGameChannel,
   ensureSetupRoles,
+  ensureSetupTextChannels,
   ensureSetupVoiceChannels,
   hasAllSetupChannelOptions,
-  hasAnySetupChannelOption
+  hasAnySetupChannelOption,
+  refreshGameLogChannel
 }
