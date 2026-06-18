@@ -18,6 +18,11 @@ function isUnknownChannelError(err) {
   return getDiscordErrorCode(err) === 10003
 }
 
+function isMissingChannelError(err) {
+  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
+  return isUnknownChannelError(err) || message.includes('unknown channel')
+}
+
 function isChannelNotCachedError(err) {
   const code = getDiscordErrorCode(err)
   const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
@@ -57,6 +62,7 @@ module.exports = {
   isChannelNotCachedError,
   isIgnorableInteractionResponseError,
   isInvalidWebhookTokenError,
+  isMissingChannelError,
   isUnknownChannelError,
   isUnknownInteractionError,
   isUnknownMessageError,
