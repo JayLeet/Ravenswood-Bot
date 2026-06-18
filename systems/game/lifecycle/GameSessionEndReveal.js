@@ -28,6 +28,14 @@ async function openEndReveal(service, manager, guildId, member) {
     }, member.guild)
   }
 
+  if (game.pendingEndReveal?.status === 'pending') {
+    return manager.createSuccess({
+      reveal: game.pendingEndReveal,
+      revealAlreadyOpen: true,
+      view: serializeView(manager, game, guildId)
+    })
+  }
+
   const forcedWin = manager.winConditions?.getRevealLock?.(manager, game) ||
     service.evaluateWinConditions(manager, game, { preview: true })
   const reveal = {
@@ -78,7 +86,7 @@ async function revealGrimPlayer(service, manager, guildId, member, playerId, rev
 
   await updateRevealedPlayerNickname(manager, game, member.guild, playerId)
 
-  if (isRevealComplete(game, valid.reveal) && valid.reveal.winner) {
+  if (isRevealComplete(manager, game, valid.reveal) && valid.reveal.winner) {
     return forceEndAfterCompleteReveal(service, manager, game, valid.reveal, member, guildId)
   }
 
@@ -145,7 +153,7 @@ async function endGameWithWinner(service, manager, guildId, member, winner, reve
   game.winner = winner
   game.winReason = `Chosen by ${mention(member.id)}`
 
-  if (valid.reveal.skipPlayerReveal || isRevealComplete(game, valid.reveal)) {
+  if (valid.reveal.skipPlayerReveal || isRevealComplete(manager, game, valid.reveal)) {
     return forceEndAfterCompleteReveal(service, manager, game, valid.reveal, member, guildId)
   }
 
@@ -196,10 +204,12 @@ function validateEndReveal(service, manager, game, member, revealId) {
   return manager.createSuccess({ reveal })
 }
 
-function isRevealComplete(game, reveal) {
-  const playerIds = Object.entries(game.users || {})
-    .filter(([, user]) => user.role === 'player')
-    .map(([userId]) => userId)
+function isRevealComplete(manager, game, reveal) {
+  const playerIds = typeof manager?.getPlayerIds === 'function'
+    ? manager.getPlayerIds(game)
+    : Object.entries(game.users || {})
+      .filter(([, user]) => user.role === 'player')
+      .map(([userId]) => userId)
   if (!playerIds.length) return false
 
   const revealed = new Set(reveal.revealedPlayers || [])
