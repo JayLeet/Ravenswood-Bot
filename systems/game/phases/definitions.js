@@ -1,11 +1,3 @@
-/** @type {Readonly<Record<Uppercase<import('../../../types').GamePhase>, import('../../../types').GamePhase>>} */
-const PHASES = {
-  LOBBY: 'lobby',
-  NIGHT: 'night',
-  DAY: 'day',
-  NOMINATIONS: 'nominations'
-}
-
 /** @type {import('../../../types').PhaseLabelMap} */
 const PHASE_LABELS = {
   lobby: 'Lobby',
@@ -80,7 +72,6 @@ function validatePhaseDefinitions() {
 }
 
 module.exports = {
-  PHASES,
   PHASE_FLOW,
   PHASE_LABELS,
   PHASE_STATES,
