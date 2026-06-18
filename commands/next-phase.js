@@ -1,6 +1,7 @@
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
-  appendPrivateVoiceFeatureNotice
+  appendPrivateVoiceFeatureNotice,
+  createPrivateVoiceFeatureComponents
 } = require('../utils/privateVoiceNotice')
 
 module.exports = {
@@ -25,6 +26,7 @@ module.exports = {
     return {
       ok: true,
       message: `Advanced to ${result.phaseLabel}.`,
+      publicComponents: createPrivateVoiceFeatureComponents(result.phase),
       publicMessage: appendPrivateVoiceFeatureNotice([
         result.publicMessage,
         `The game advanced to ${result.phaseLabel}.`
