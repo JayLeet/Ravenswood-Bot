@@ -220,7 +220,7 @@ async function sendRoutedMessage(interaction, ctx, message, channelId, component
 
   const payload = {
     content: extractMentions(message),
-    embeds: [createEmbed('Notice', message, 'info')],
+    embeds: [createEmbed('📣 Game Notice', message, 'info')],
     components: components || []
   }
 
