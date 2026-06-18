@@ -49,12 +49,10 @@ function createGrimRevealPayload(view, revealId, playerLabels = {}) {
         .setTitle('The Grimoire Opens')
         .setDescription([
           'The Storyteller may reveal players one by one.',
-          reveal.winner
-            ? `The ${formatWinner(reveal.winner)} team has won. Reveal every remaining hidden role to finish cleanup.`
-            : createWinnerHelpText(),
+          reveal.winner ? null : createWinnerHelpText(),
           '',
           formatRevealList(view, players, revealed, playerLabels)
-        ].join('\n'))
+        ].filter(line => line !== null).join('\n'))
         .setColor(0x8e44ad)
     ],
     components: [
@@ -206,12 +204,6 @@ function getKnownRevealNamePrefixes() {
     ...Object.values(ROLE_EMOJIS).flatMap(emoji => [`${emoji}\u274C `, `${emoji} `]),
     ...Object.values(TEAM_EMOJIS).map(emoji => `${emoji} `)
   ].sort((left, right) => right.length - left.length)
-}
-
-function formatWinner(winner) {
-  if (winner === 'good') return 'Good'
-  if (winner === 'evil') return 'Evil'
-  return String(winner || 'chosen')
 }
 
 module.exports = {
