@@ -5,6 +5,9 @@ const {
   queuedVoiceMove
 } = require('../../../utils/discord/voiceActions')
 const {
+  getCacheValues
+} = require('../../../utils/discord/cacheValues')
+const {
   createBotLogger
 } = require('../../../utils/logger')
 const {
@@ -23,7 +26,7 @@ async function cleanupEndedGameVoiceAndRoles(guild, gameManager) {
   if (!guild || !gameManager) return summary
 
   await refreshPostGameVoiceChannels(guild)
-  const channels = getCachedValues(guild.channels?.cache)
+  const channels = getCacheValues(guild.channels?.cache)
   const categoryIds = new Set(channels
     .filter(channel => channel.type === ChannelType.GuildCategory)
     .filter(channel => GAME_VOICE_CATEGORY_NAMES.includes(channel.name))
@@ -66,12 +69,12 @@ function collectVoiceMembersInCategories(guild, channels, categoryIds, waitingRo
   )
 
   for (const channel of voiceChannels) {
-    for (const member of getCachedValues(channel.members)) {
+    for (const member of getCacheValues(channel.members)) {
       if (member?.id) members.set(member.id, member)
     }
   }
 
-  for (const member of getCachedValues(guild.members?.cache)) {
+  for (const member of getCacheValues(guild.members?.cache)) {
     if (!member?.id || members.has(member.id)) continue
     const channelId = member.voice?.channelId
     const channel = channels.find(item => item.id === channelId)
@@ -153,14 +156,6 @@ async function moveVoiceMemberToWaitingRoom(member, waitingRoom, summary) {
     })
 }
 
-function getCachedValues(cache) {
-  if (!cache) return []
-  if (Array.isArray(cache)) return cache
-  if (typeof cache.values === 'function') return [...cache.values()]
-  if (typeof cache[Symbol.iterator] === 'function') return [...cache]
-  return Object.values(cache)
-}
-
 function createPostGameVoiceCleanupSummary() {
   return {
     moved: [],
@@ -178,5 +173,5 @@ module.exports = {
   collectVoiceMembersInCategories,
   createPostGameVoiceCleanupSummary,
   findWaitingRoom,
-  getCachedValues
+  getCachedValues: getCacheValues
 }
