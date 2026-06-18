@@ -3,7 +3,6 @@ const DEFAULT_MESSAGES = Object.freeze({
 
   'game.start.roleInfo.title': 'You believe you are {roleName}.',
   'game.start.roleInfo.abilityHeading': '**Ability:**',
-  'game.start.roleInfo.footer': 'The Storyteller is the final authority.',
 
   'night.voice.cottageName': "{player}'s Cottage",
 
