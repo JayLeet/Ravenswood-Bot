@@ -3,6 +3,9 @@ const {
   queuedChannelSend,
   queuedMessageEdit
 } = require('../../../utils/discord/messageActions')
+const {
+  isMissingChannelError
+} = require('../../../utils/discord/interactionErrors')
 
 const PROMPT_REF_UNAVAILABLE = Symbol('prompt-ref-unavailable')
 const PROMPT_WRITE_UNAVAILABLE = Symbol('prompt-write-unavailable')
@@ -203,12 +206,6 @@ function getNightInfoPromptKey(action) {
   if (action.nightInfoPromptKey) return String(action.nightInfoPromptKey)
   if (action.purpose === 'role_change_info') return ROLE_CHANGE_INFO_PROMPT_KEY
   return null
-}
-
-function isMissingChannelError(err) {
-  const code = err?.code ?? err?.rawError?.code
-  const message = String(err?.rawError?.message || err?.message || '').toLowerCase()
-  return code === 10003 || message.includes('unknown channel')
 }
 
 module.exports = {
