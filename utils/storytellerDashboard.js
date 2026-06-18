@@ -48,6 +48,7 @@ const {
 const {
   createFullGrimoirePayload,
   createGrimoireMenuPayload,
+  createMobileGrimoirePayload,
   createPlayerGrimoirePayload,
   createReminderTokenPayload
 } = require('./storytellerDashboard/grimoireView')
@@ -65,6 +66,7 @@ const {
 const {
   createNightWakeMenuPayload,
   formatNotInPlayInfo,
+  normalizeNotInPlaySelection,
   parseNotInPlaySelection,
   parseWakeSendText
 } = require('./storytellerDashboard/nightWakeMenu')
@@ -115,6 +117,7 @@ module.exports = {
   createFullGrimoirePayload,
   createGrimoireCustomId,
   createGrimoireMenuPayload,
+  createMobileGrimoirePayload,
   createLunaticDemonPayload,
   createLunaticMinionsPayload,
   createGrimRevealCustomId,
@@ -158,6 +161,7 @@ module.exports = {
   isDrunkSelected,
   isRandomRoleSelectionComplete,
   isRandomRoleTeamFull,
+  normalizeNotInPlaySelection,
   parseForcedNominationCustomId,
   parseGrimoireCustomId,
   parseGrimRevealCustomId,
