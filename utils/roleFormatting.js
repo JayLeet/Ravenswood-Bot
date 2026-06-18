@@ -22,9 +22,14 @@ function formatRoleWithEmoji(view, roleId) {
   return `${getRoleEmoji(view, roleId)} ${formatRoleWithArticle(view, roleId)}`
 }
 
+function formatRoleNameWithEmoji(view, roleId) {
+  return `${getRoleEmoji(view, roleId)} ${getRoleName(view, roleId)}`
+}
+
 module.exports = {
   formatRoleName,
   formatRoleWithArticle,
   formatRoleWithEmoji,
+  formatRoleNameWithEmoji,
   getRoleName
 }
