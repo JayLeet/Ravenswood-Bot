@@ -5,9 +5,6 @@ const {
   createSingleFlight
 } = require('../../../utils/discord/singleFlight')
 const {
-  queuedGuildChannelCreate
-} = require('../../../utils/discord/channelActions')
-const {
   hasAdministratorOrGlobalCommandAccess
 } = require('../../../utils/commandAccess')
 const {
@@ -20,20 +17,16 @@ const {
   findOrCreateAutoSetupCategory
 } = require('../../../utils/setupAutoCategory')
 const {
-  logSetupRecoverable
-} = require('../../../utils/setupLogging')
-const {
   createSetupProgressPayload
 } = require('../../../utils/setupProgress')
 const {
   SETUP_CHANNEL_PICKER_ACTIONS,
   SETUP_CHANNEL_PICKER_DETAILS,
-  SETUP_CHANNEL_PICKER_KEYS,
-  createExistingSetupChannelSelection,
+  SETUP_GAME_LOG_SAVE_MODES,
   createSetupChannelPickerPayload,
-  fillMissingSetupChannelSelection,
   getMissingSetupChannelKeys,
   isSetupChannelsInteraction,
+  isSetupManualReady,
   normalizeSetupChannelSelection,
   parseSetupChannelsCustomId
 } = require('../../../utils/setupChannelPicker')
@@ -43,13 +36,8 @@ const {
   updateInteraction
 } = require('./feedback')
 const {
-  ensureManagedTracking,
-  trackPendingManagedCategory,
-  trackPendingManagedChannel
-} = require('./setupChannelsPersistence')
-const {
-  getSelectionCategoryNotice
-} = require('./setupChannelsCategoryGuard')
+  trackPendingManagedCategory
+} = require('../../../utils/setupPendingManagedIds')
 const {
   createSetupProgressUpdater,
   runSetupAccessChoiceFlight
@@ -57,8 +45,12 @@ const {
 const {
   sendSetupChoiceResult
 } = require('./setupUnsafeRoles')
-
-const PICKER_STATE_TTL_MS = 30 * 60 * 1000
+const {
+  getPickerState,
+  getStateKey,
+  pruneState,
+  setPickerCategory
+} = require('./setupChannelsPickerState')
 
 function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, serverConfigs }) {
   const stateByUser = new Map()
@@ -71,12 +63,12 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
     if (!parsed) return null
 
     pruneState(stateByUser)
-    if (!hasAdministrator(interaction)) {
+    if (!hasAdministratorOrGlobalCommandAccess(interaction)) {
       return replyPrivateSystem(
         interaction,
-        'Setup channels blocked',
-        'Only a server administrator or bot owner access user can choose setup channels.',
-        'Ask an administrator or the bot owner access user to use this setup picker.'
+        'Manual setup blocked',
+        'Only a server administrator or bot owner access user can choose manual setup.',
+        'Ask an administrator or the bot owner access user to use this manual setup picker.'
       )
     }
 
@@ -85,12 +77,24 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
       return updateInteraction(interaction, { content: null, embeds: [], components: [] })
     }
 
+    if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.changeCategory) {
+      return handleChangeCategory(interaction, parsed, stateByUser)
+    }
+
+    if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.createCategory) {
+      return handleCreateCategory(interaction, parsed, { saveServerConfigs, serverConfigs, stateByUser })
+    }
+
+    if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.selectCategory) {
+      return handleCategorySelect(interaction, parsed, stateByUser)
+    }
+
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.select) {
       return handleChannelSelect(interaction, parsed, stateByUser)
     }
 
-    if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.createMissing) {
-      return handleCreateMissing(interaction, parsed, { saveServerConfigs, serverConfigs, stateByUser })
+    if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.logMode) {
+      return handleLogMode(interaction, parsed, stateByUser)
     }
 
     if (parsed.action === SETUP_CHANNEL_PICKER_ACTIONS.confirm) {
@@ -114,72 +118,115 @@ function createSetupChannelsInteractionSystem({ gameManager, saveServerConfigs, 
 async function handleChannelSelect(interaction, parsed, stateByUser) {
   const selected = resolveSelectedChannel(interaction)
   const state = getPickerState(interaction, stateByUser, parsed)
+  if (!state.category) {
+    return updatePicker(interaction, state, {
+      title: 'Category needed',
+      message: 'Choose the setup category before selecting the Waiting Room or game-log archive.'
+    })
+  }
   if (!selected) {
-    return updatePicker(interaction, state.channels, {
+    return updatePicker(interaction, state, {
       title: 'Channel not found',
       message: 'Discord did not include the selected channel. Pick it again or choose another channel.'
-    }, state.privateAccess)
+    })
+  }
+  const detail = SETUP_CHANNEL_PICKER_DETAILS[parsed.key]
+  if (!detail?.channelTypes?.includes?.(selected.type)) {
+    return updatePicker(interaction, state, {
+      title: 'Wrong channel type',
+      message: `${detail?.label || 'That selection'} must use the expected Discord channel type.`
+    })
   }
 
   state.channels[parsed.key] = selected
   state.updatedAt = Date.now()
-  return updatePicker(interaction, state.channels, getSelectionCategoryNotice(state.channels), state.privateAccess)
+  return updatePicker(interaction, state)
 }
 
-async function handleCreateMissing(interaction, parsed, context) {
-  const state = getPickerState(interaction, context.stateByUser, parsed)
-  let channels = normalizeSetupChannelSelection(state.channels)
-  const categoryNotice = getSelectionCategoryNotice(channels)
-  if (categoryNotice) return updatePicker(interaction, channels, categoryNotice, state.privateAccess)
+async function handleLogMode(interaction, parsed, stateByUser) {
+  const state = getPickerState(interaction, stateByUser, parsed)
+  if (!Object.values(SETUP_GAME_LOG_SAVE_MODES).includes(parsed.key)) {
+    return updatePicker(interaction, state, {
+      title: 'Unknown save mode',
+      message: 'Choose whether game logs should save automatically or wait for a Storyteller button.'
+    })
+  }
 
-  const parentResult = await findNewChannelParent(interaction, channels, state, context)
-  if (!parentResult.ok) {
-    return updatePicker(interaction, channels, {
+  state.gameLogSaveMode = parsed.key
+  state.updatedAt = Date.now()
+  return updatePicker(interaction, state)
+}
+
+async function handleCategorySelect(interaction, parsed, stateByUser) {
+  const selected = resolveSelectedChannel(interaction)
+  const state = getPickerState(interaction, stateByUser, parsed)
+  if (!selected || selected.type !== ChannelType.GuildCategory) {
+    return updatePicker(interaction, state, {
+      title: 'Category not found',
+      message: 'Discord did not include the selected category. Pick it again or create the Ravenswood Bluff category.'
+    })
+  }
+  setPickerCategory(state, interaction.guild, selected)
+  return updatePicker(interaction, state)
+}
+
+async function handleChangeCategory(interaction, parsed, stateByUser) {
+  const state = getPickerState(interaction, stateByUser, parsed)
+  setPickerCategory(state, interaction.guild, null)
+  return updatePicker(interaction, state)
+}
+
+async function handleCreateCategory(interaction, parsed, context) {
+  const state = getPickerState(interaction, context.stateByUser, parsed)
+  const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
+  if (!result.ok || !result.category) {
+    return updatePicker(interaction, state, {
       title: 'Category creation failed',
       message: 'I could not create or find the Ravenswood Bluff category. Check Manage Channels and try again.'
-    }, state.privateAccess)
+    })
   }
-  channels = fillMissingSetupChannelSelection(channels, interaction.guild, parentResult.parentId)
-
-  for (const key of getMissingSetupChannelKeys(channels)) {
-    const created = await createMissingSetupChannel(interaction, key, parentResult.parentId)
-    if (!created) {
-      return updatePicker(interaction, channels, {
-        title: 'Channel creation failed',
-        message: `I could not create ${SETUP_CHANNEL_PICKER_DETAILS[key].label}. Check Manage Channels and try again.`
-      }, state.privateAccess)
-    }
-    channels[key] = created
-    state.managedChannels[key] = created
-    trackPendingManagedChannel(interaction, state, context, created)
+  if (String(state.managedCategories.setupCategory?.id || '') === String(result.category.id)) {
+    trackPendingManagedCategory(interaction, state, context, result.category)
   }
-
-  state.channels = channels
-  state.updatedAt = Date.now()
-  return updatePicker(interaction, state.channels, {
-    title: 'Channels created',
-    message: 'The setup channels were created or reused and selected.'
-  }, state.privateAccess)
+  setPickerCategory(state, interaction.guild, result.category)
+  return updatePicker(interaction, state, {
+    title: 'Category selected',
+    message: `BOTC setup channels will be created or reused inside <#${result.category.id}>.`
+  })
 }
 
 async function handleConfirm(interaction, context) {
   const state = getPickerState(interaction, context.stateByUser, parseSetupChannelsCustomId(interaction.customId))
   const selection = normalizeSetupChannelSelection(state.channels)
   const missing = getMissingSetupChannelKeys(selection)
-  if (missing.length) {
-    return updatePicker(interaction, selection, {
-      title: 'More channels needed',
-      message: `Choose or create: ${missing.map(key => SETUP_CHANNEL_PICKER_DETAILS[key].label).join(', ')}.`
-    }, state.privateAccess)
+  if (!state.category) {
+    return updatePicker(interaction, state, {
+      title: 'Category needed',
+      message: 'Choose the setup category before continuing setup.'
+    })
   }
-  const categoryNotice = getSelectionCategoryNotice(selection)
-  if (categoryNotice) return updatePicker(interaction, selection, categoryNotice, state.privateAccess)
+  if (missing.length) {
+    return updatePicker(interaction, state, {
+      title: 'More channels needed',
+      message: `Choose: ${missing.map(key => SETUP_CHANNEL_PICKER_DETAILS[key].label).join(', ')}.`
+    })
+  }
+  if (!isSetupManualReady(selection, state.gameLogSaveMode)) {
+    return updatePicker(interaction, state, {
+      title: 'Game-log save mode needed',
+      message: 'Choose whether game logs should save automatically or wait for a Storyteller button.'
+    })
+  }
 
   const onProgress = createSetupProgressUpdater(interaction)
   await updateInteraction(interaction, createSetupProgressPayload())
   const result = await runSetup(interaction, context, {
     manualChannels: true,
-    manualChannelSelection: selection,
+    manualChannelSelection: {
+      ...selection,
+      category: state.category,
+      gameLogSaveMode: state.gameLogSaveMode
+    },
     manualManagedChannels: state.managedChannels,
     onProgress,
     privateAccess: state.privateAccess
@@ -188,59 +235,13 @@ async function handleConfirm(interaction, context) {
   return sendSetupChoiceResult(interaction, result)
 }
 
-async function createMissingSetupChannel(interaction, key, parent) {
-  const config = SETUP_CHANNEL_PICKER_DETAILS[key].createConfig
-  return queuedGuildChannelCreate(interaction.guild, {
-    name: config.name,
-    parent,
-    reason: config.reason,
-    type: ChannelType.GuildText
-  }).catch(err => {
-    logSetupRecoverable('create-manual-setup-picker-channel', err, {
-      guildId: interaction.guild?.id,
-      name: config.name,
-      userId: interaction.user?.id
-    })
-    return null
-  })
-}
-
-function updatePicker(interaction, selection, notice = null, privateAccess = false) {
-  return updateInteraction(interaction, createSetupChannelPickerPayload(selection, { notice, privateAccess }))
-}
-
-function getPickerState(interaction, stateByUser, parsed = null) {
-  const key = getStateKey(interaction)
-  const existing = stateByUser.get(key)
-  if (existing) {
-    ensureManagedTracking(existing)
-    if (parsed?.accessSpecified) existing.privateAccess = parsed.privateAccess === true
-    return existing
-  }
-  const created = {
-    channels: createExistingSetupChannelSelection(interaction.guild),
-    managedCategories: {},
-    managedCategoryIds: [],
-    managedChannels: {},
-    managedChannelIds: [],
-    privateAccess: parsed?.privateAccess === true,
-    updatedAt: Date.now()
-  }
-  stateByUser.set(key, created)
-  return created
-}
-
-async function findNewChannelParent(interaction, channels, state, context) {
-  const selected = SETUP_CHANNEL_PICKER_KEYS.map(key => channels[key]).find(Boolean)
-  const selectedParentId = selected?.parentId || selected?.parent?.id || null
-  if (selectedParentId) return { ok: true, parentId: selectedParentId }
-
-  const result = await findOrCreateAutoSetupCategory(interaction.guild, { managedCategories: state.managedCategories })
-  if (!result.ok) return { ok: false, parentId: null }
-  if (String(state.managedCategories.setupCategory?.id || '') === String(result.category?.id || '')) {
-    trackPendingManagedCategory(interaction, state, context, result.category)
-  }
-  return { ok: true, parentId: result.category?.id || null }
+function updatePicker(interaction, state, notice = null) {
+  return updateInteraction(interaction, createSetupChannelPickerPayload(state.channels, {
+    category: state.category,
+    gameLogSaveMode: state.gameLogSaveMode,
+    notice,
+    privateAccess: state.privateAccess
+  }))
 }
 
 function resolveSelectedChannel(interaction) {
@@ -249,24 +250,6 @@ function resolveSelectedChannel(interaction) {
     interaction.channels?.first?.() ||
     interaction.guild?.channels?.cache?.get?.(selectedId) ||
     null
-}
-
-function getStateKey(interaction) {
-  return `${interaction.guild?.id || 'dm'}:${interaction.user?.id || interaction.member?.id}`
-}
-
-function pruneState(stateByUser, now = Date.now()) {
-  let removed = 0
-  for (const [key, state] of stateByUser.entries()) {
-    if (now - (state.updatedAt || 0) < PICKER_STATE_TTL_MS) continue
-    stateByUser.delete(key)
-    removed += 1
-  }
-  return removed
-}
-
-function hasAdministrator(interaction) {
-  return hasAdministratorOrGlobalCommandAccess(interaction)
 }
 
 module.exports = {
