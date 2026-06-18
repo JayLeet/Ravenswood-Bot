@@ -1,5 +1,5 @@
 const { ApplicationCommandOptionType } = require('discord.js')
-const { wrapCommand } = require('../systems/discord/interactions/commandWrapper')
+const { wrapCommand } = require('../utils/commandWrapper')
 const {
   respondAutocomplete
 } = require('../systems/discord/interactions/feedback')
