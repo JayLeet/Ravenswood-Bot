@@ -34,6 +34,8 @@ class GameStateNormalizer {
 
     game.nominations ??= []
     game.nominationRequests ??= []
+    game.chatMessages ??= []
+    game.chatMessagesDropped = Number(game.chatMessagesDropped) || 0
     game.executionHistory ??= []
     game.executedPlayer ??= null
     game.executionCandidate ??= null
