@@ -1,21 +1,21 @@
 const {
-  createGameLogPayload
-} = require('../../../utils/gameLogSummary')
-const {
   GAME_LOG_ACTIONS,
   createResolvedGameLogRows,
   isGameLogDecisionInteraction,
   parseGameLogCustomId
 } = require('../../../utils/gameLogDecisions')
 const {
-  queuedChannelSend,
   queuedMessageEdit
 } = require('../../../utils/discord/messageActions')
+const {
+  saveGameLogSummary
+} = require('../../../utils/gameLogArchive')
 const {
   createBotLogger
 } = require('../../../utils/logger')
 const {
   acknowledgeInteraction,
+  createSystemEmbed,
   replyPrivateSystem
 } = require('./feedback')
 const {
@@ -52,14 +52,16 @@ function createGameLogInteractionSystem({
       )
     }
 
+    let saved = null
     if (parsed.action === GAME_LOG_ACTIONS.save) {
-      const saved = await saveSummary(interaction, summary)
+      saved = await saveSummary(interaction, summary)
       if (!saved) return false
     }
 
     deletePendingGameSummary?.(interaction.guild.id)
     await acknowledgeInteraction(interaction)
     await queuedMessageEdit(interaction.message, {
+      embeds: [createResolvedGameLogEmbed(parsed.action, saved)],
       components: createResolvedGameLogRows(parsed.action)
     }).catch(err => {
       log.recoverable('mark-game-log-decision-resolved', err, {
@@ -73,44 +75,31 @@ function createGameLogInteractionSystem({
   }
 
   async function saveSummary(interaction, summary) {
-    const config = serverConfigs.get(interaction.guild.id) || {}
-    const channelId = config.gameLogChannelId || config.postGameChannelId || config.liveChannelId
-    const channel = channelId
-      ? await interaction.client.channels.fetch(channelId).catch(err => {
-          log.recoverable('fetch-game-log-channel', err, {
-            channelId,
-            guildId: interaction.guild?.id,
-            summaryId: summary.id
-          })
-          return null
-        })
-      : null
+    const saved = await saveGameLogSummary({
+      client: interaction.client,
+      guildId: interaction.guild.id,
+      savedByDisplayName: getInteractionDisplayName(interaction),
+      savedById: interaction.user?.id || interaction.member?.id,
+      serverConfigs,
+      summary
+    })
 
-    if (!channel?.isTextBased?.()) {
+    if (saved.reason === 'missing-channel') {
       await replyPrivateSystem(
         interaction,
         'Game log missing',
-        'I could not find a channel for saved game logs.',
+        saved.message,
         'Ask an admin to rerun `/setup`, then save from the newest end-game summary.'
       )
       return false
     }
 
-    const payload = createGameLogPayload(summary, interaction.user?.id || interaction.member?.id)
-    const sent = await queuedChannelSend(channel, payload).catch(err => {
-      log.recoverable('send-game-log-summary', err, {
-        channelId: channel.id,
-        guildId: interaction.guild?.id,
-        summaryId: summary.id
-      })
-      return null
-    })
-    if (sent) return true
+    if (saved.ok) return saved
 
     await replyPrivateSystem(
       interaction,
       'Could not save log',
-      `I could not post the game log in <#${channel.id}>.`,
+      saved.message,
       'Check my Send Messages and Embed Links permissions, then try Save to Game Log again.'
     )
     return false
@@ -124,7 +113,34 @@ function canDiscard(interaction, summary) {
   return hasAdministratorOrGlobalCommandAccess(interaction)
 }
 
+function createResolvedGameLogEmbed(action, saved = null) {
+  if (action === GAME_LOG_ACTIONS.save) {
+    const channelText = saved?.channel?.id
+      ? `Posted the game log in <#${saved.channel.id}>.`
+      : 'Posted the game log in the configured game-log channel.'
+    return createSystemEmbed(
+      'Game log saved',
+      `${channelText}\n\nThis pending save prompt is now closed.`,
+      0x2ecc71
+    )
+  }
+
+  return createSystemEmbed(
+    'Game history discarded',
+    'The pending game history was discarded. No game-log message was posted.\n\nThis prompt is now closed.',
+    0x95a5a6
+  )
+}
+
+function getInteractionDisplayName(interaction) {
+  return interaction.member?.displayName ||
+    interaction.user?.globalName ||
+    interaction.user?.username ||
+    null
+}
+
 module.exports = {
+  createResolvedGameLogEmbed,
   createGameLogInteractionSystem,
   isGameLogDecisionInteraction
 }
